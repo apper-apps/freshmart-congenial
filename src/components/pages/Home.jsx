@@ -2,7 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import HeroSection from "@/components/organisms/HeroSection";
 import DealsCarousel from "@/components/organisms/DealsCarousel";
+import WeatherDealsCarousel from "@/components/organisms/WeatherDealsCarousel";
 import ProductGrid from "@/components/organisms/ProductGrid";
+import WeatherWidget from "@/components/molecules/WeatherWidget";
 import ApperIcon from "@/components/ApperIcon";
 import Button from "@/components/atoms/Button";
 import Badge from "@/components/atoms/Badge";
@@ -42,7 +44,12 @@ const Home = () => {
   ];
 
   return (
-    <div>
+<div>
+      {/* Weather Widget */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <WeatherWidget />
+      </div>
+
       {/* Hero Section */}
       <HeroSection />
 
@@ -78,6 +85,8 @@ const Home = () => {
       </section>
 
       {/* Deals Section */}
+<WeatherDealsCarousel />
+      
       <DealsCarousel />
 
       {/* Trending Products */}

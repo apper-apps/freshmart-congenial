@@ -5,6 +5,7 @@ import Button from "@/components/atoms/Button";
 import Badge from "@/components/atoms/Badge";
 import Loading from "@/components/ui/Loading";
 import Error from "@/components/ui/Error";
+import WeatherWidget from "@/components/molecules/WeatherWidget";
 import { productService } from "@/services/api/productService";
 import { cartService } from "@/services/api/cartService";
 import { toast } from "react-toastify";
@@ -84,6 +85,11 @@ const ProductDetail = () => {
 
   return (
     <div className="min-h-screen bg-background">
+{/* Weather Widget */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <WeatherWidget className="mb-6" />
+      </div>
+
       {/* Breadcrumbs */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
