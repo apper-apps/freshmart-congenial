@@ -1,13 +1,17 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ApperIcon from "@/components/ApperIcon";
-import Button from "@/components/atoms/Button";
-import Badge from "@/components/atoms/Badge";
-import { cartService } from "@/services/api/cartService";
 import { toast } from "react-toastify";
+import QuickViewModal from "@/components/molecules/QuickViewModal";
+import { cartService } from "@/services/api/cartService";
+import ApperIcon from "@/components/ApperIcon";
+import Cart from "@/components/pages/Cart";
+import Badge from "@/components/atoms/Badge";
+import Button from "@/components/atoms/Button";
 
 const ProductCard = ({ product }) => {
   const navigate = useNavigate();
+  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
+  const [hoverTimeout, setHoverTimeout] = useState(null);
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
@@ -40,12 +44,38 @@ const ProductCard = ({ product }) => {
       className="bg-surface rounded-xl shadow-premium hover:shadow-premium-lg transition-all duration-300 transform hover:scale-105 cursor-pointer overflow-hidden group"
       onClick={handleViewProduct}
     >
-      <div className="relative aspect-square overflow-hidden">
+<div 
+        className="relative aspect-square overflow-hidden cursor-pointer"
+        onMouseEnter={() => {
+          const timeout = setTimeout(() => {
+            setIsQuickViewOpen(true);
+          }, 800);
+          setHoverTimeout(timeout);
+        }}
+        onMouseLeave={() => {
+          if (hoverTimeout) {
+            clearTimeout(hoverTimeout);
+            setHoverTimeout(null);
+          }
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsQuickViewOpen(true);
+        }}
+      >
         <img
           src={product.imageUrl}
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
         />
+        
+        {/* Quick View Overlay */}
+        <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white rounded-full p-3 shadow-lg">
+            <ApperIcon name="Eye" className="w-6 h-6 text-gray-700" />
+          </div>
+        </div>
+        
         {product.tags && product.tags.length > 0 && (
           <div className="absolute top-2 right-2 flex flex-col gap-1">
             {product.tags.slice(0, 2).map((tag, index) => (
@@ -105,8 +135,14 @@ const ProductCard = ({ product }) => {
         >
           <ApperIcon name="ShoppingCart" className="w-4 h-4 mr-2" />
           Add to Cart
-        </Button>
+</Button>
       </div>
+      {/* Quick View Modal */}
+      <QuickViewModal
+        product={product}
+        isOpen={isQuickViewOpen}
+        onClose={() => setIsQuickViewOpen(false)}
+      />
     </div>
   );
 };
