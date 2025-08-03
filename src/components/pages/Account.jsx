@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from "react";
+import { toast } from "react-toastify";
 import ApperIcon from "@/components/ApperIcon";
 import Button from "@/components/atoms/Button";
 import Badge from "@/components/atoms/Badge";
 import Loading from "@/components/ui/Loading";
 import Error from "@/components/ui/Error";
 import Empty from "@/components/ui/Empty";
+import ProductCard from "@/components/molecules/ProductCard";
 import { orderService } from "@/services/api/orderService";
+import { cartService } from "@/services/api/cartService";
 import { formatDistance } from "date-fns";
 
 const Account = () => {
-  const [activeTab, setActiveTab] = useState("orders");
+const [activeTab, setActiveTab] = useState("orders");
   const [orders, setOrders] = useState([]);
+  const [recentlyPurchased, setRecentlyPurchased] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [recentlyPurchasedLoading, setRecentlyPurchasedLoading] = useState(true);
   const [error, setError] = useState("");
-
   const loadOrders = async () => {
     try {
       setLoading(true);
@@ -27,12 +31,36 @@ const Account = () => {
     }
   };
 
+const loadRecentlyPurchased = async () => {
+    try {
+      setRecentlyPurchasedLoading(true);
+      const data = await orderService.getRecentlyPurchased();
+      setRecentlyPurchased(data);
+    } catch (err) {
+      console.error("Failed to load recently purchased products:", err);
+    } finally {
+      setRecentlyPurchasedLoading(false);
+    }
+  };
+
+  const handleReorder = async (product) => {
+    try {
+      await cartService.addItem(product.Id, 1);
+      toast.success(`${product.name} added to cart!`);
+    } catch (err) {
+      toast.error("Failed to add item to cart");
+      console.error("Failed to reorder:", err);
+    }
+  };
+
   useEffect(() => {
     loadOrders();
+    loadRecentlyPurchased();
   }, []);
 
   const tabs = [
     { id: "orders", name: "Orders", icon: "ShoppingBag" },
+    { id: "recently-purchased", name: "Recently Purchased", icon: "RotateCcw" },
     { id: "profile", name: "Profile", icon: "User" },
     { id: "addresses", name: "Addresses", icon: "MapPin" },
     { id: "preferences", name: "Preferences", icon: "Settings" }
@@ -100,7 +128,7 @@ const Account = () => {
 
           {/* Content */}
           <div className="lg:col-span-3">
-            {activeTab === "orders" && (
+{activeTab === "orders" && (
               <div className="space-y-6">
                 <div className="bg-white rounded-xl shadow-premium p-6">
                   <h2 className="font-display font-semibold text-xl text-gray-900 mb-6">
@@ -182,6 +210,53 @@ const Account = () => {
                           </div>
                         </div>
                       ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "recently-purchased" && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl shadow-premium p-6">
+                  <h2 className="font-display font-semibold text-xl text-gray-900 mb-6">
+                    Recently Purchased Items
+                  </h2>
+
+                  {recentlyPurchasedLoading ? (
+                    <Loading />
+                  ) : recentlyPurchased.length === 0 ? (
+                    <Empty
+                      title="No purchase history"
+                      description="Start shopping to see your frequently purchased items here."
+                      actionLabel="Start Shopping"
+                      onAction={() => window.location.href = "/categories"}
+                      icon="RotateCcw"
+                    />
+                  ) : (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {recentlyPurchased.map((product) => (
+                          <div key={product.Id} className="relative">
+                            <ProductCard product={product} />
+                            <div className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-md">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleReorder(product)}
+                                className="p-2 hover:bg-primary-50"
+                              >
+                                <ApperIcon name="RotateCcw" size={16} className="text-primary-600" />
+                              </Button>
+                            </div>
+                            {product.purchaseCount > 1 && (
+                              <div className="absolute top-2 left-2 bg-primary-100 text-primary-800 text-xs px-2 py-1 rounded-full font-medium">
+                                Bought {product.purchaseCount} times
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
