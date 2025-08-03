@@ -1,0 +1,52 @@
+[
+  {
+    "Id": 1,
+    "title": "Flash Sale - Fresh Fruits",
+    "type": "flash-sale",
+    "discount": 25,
+    "products": [3, 4, 12, 16],
+    "expiresAt": "2024-12-31T23:59:59.000Z",
+    "weatherTrigger": null,
+    "description": "Limited time offer on fresh fruits - stock up now!"
+  },
+  {
+    "Id": 2,
+    "title": "Bulk Vegetable Discount",
+    "type": "bulk-discount",
+    "discount": 15,
+    "products": [1, 2, 11, 15],
+    "expiresAt": "2024-12-30T18:00:00.000Z",
+    "weatherTrigger": null,
+    "description": "Save more when you buy in bulk - perfect for meal prep!"
+  },
+  {
+    "Id": 3,
+    "title": "Rainy Day Special",
+    "type": "weather-special",
+    "discount": 20,
+    "products": [5, 7, 8],
+    "expiresAt": "2024-12-29T12:00:00.000Z",
+    "weatherTrigger": "rainy",
+    "description": "Comfort food essentials for cozy rainy days"
+  },
+  {
+    "Id": 4,
+    "title": "Premium Meat & Fish Sale",
+    "type": "category-sale",
+    "discount": 30,
+    "products": [9, 10],
+    "expiresAt": "2024-12-31T20:00:00.000Z",
+    "weatherTrigger": null,
+    "description": "Best prices on premium quality meat and fresh fish"
+  },
+  {
+    "Id": 5,
+    "title": "Dairy Delight Deal",
+    "type": "category-sale",
+    "discount": 18,
+    "products": [5, 6, 13],
+    "expiresAt": "2024-12-30T15:30:00.000Z",
+    "weatherTrigger": null,
+    "description": "Fresh dairy products at unbeatable prices"
+  }
+]

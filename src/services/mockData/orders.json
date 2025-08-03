@@ -1,0 +1,102 @@
+[
+  {
+    "Id": 1,
+    "items": [
+      {
+        "productId": 1,
+        "quantity": 2,
+        "selectedBulkOption": null,
+        "subtotal": 90,
+        "product": {
+          "Id": 1,
+          "name": "Organic Tomatoes",
+          "imageUrl": "https://images.unsplash.com/photo-1546470427-e4f5b9edc13c?w=400&h=400&fit=crop"
+        }
+      },
+      {
+        "productId": 4,
+        "quantity": 1,
+        "selectedBulkOption": null,
+        "subtotal": 55,
+        "product": {
+          "Id": 4,
+          "name": "Organic Bananas",
+          "imageUrl": "https://images.unsplash.com/photo-1603833665858-e61d17a86224?w=400&h=400&fit=crop"
+        }
+      }
+    ],
+    "total": 145,
+    "deliverySlot": "morning",
+    "status": "delivered",
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "deliveryInfo": {
+      "fullName": "John Smith",
+      "address": "123 Green Street",
+      "city": "Downtown",
+      "deliverySlot": "Morning (8:00 AM - 12:00 PM)"
+    }
+  },
+  {
+    "Id": 2,
+    "items": [
+      {
+        "productId": 5,
+        "quantity": 3,
+        "selectedBulkOption": null,
+        "subtotal": 195,
+        "product": {
+          "Id": 5,
+          "name": "Farm Fresh Milk",
+          "imageUrl": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&h=400&fit=crop"
+        }
+      }
+    ],
+    "total": 195,
+    "deliverySlot": "afternoon",
+    "status": "processing",
+    "createdAt": "2024-01-18T14:20:00.000Z",
+    "deliveryInfo": {
+      "fullName": "Sarah Johnson",
+      "address": "456 Oak Avenue",
+      "city": "Midtown",
+      "deliverySlot": "Afternoon (12:00 PM - 6:00 PM)"
+    }
+  },
+  {
+    "Id": 3,
+    "items": [
+      {
+        "productId": 7,
+        "quantity": 2,
+        "selectedBulkOption": null,
+        "subtotal": 90,
+        "product": {
+          "Id": 7,
+          "name": "Whole Wheat Bread",
+          "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&h=400&fit=crop"
+        }
+      },
+      {
+        "productId": 6,
+        "quantity": 1,
+        "selectedBulkOption": null,
+        "subtotal": 280,
+        "product": {
+          "Id": 6,
+          "name": "Artisan Cheese",
+          "imageUrl": "https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=400&h=400&fit=crop"
+        }
+      }
+    ],
+    "total": 370,
+    "deliverySlot": "evening",
+    "status": "delivered",
+    "createdAt": "2024-01-12T16:45:00.000Z",
+    "deliveryInfo": {
+      "fullName": "Mike Chen",
+      "address": "789 Pine Road",
+      "city": "Uptown",
+      "deliverySlot": "Evening (6:00 PM - 10:00 PM)"
+    }
+  }
+]

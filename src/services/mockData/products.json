@@ -1,0 +1,258 @@
+[
+  {
+    "Id": 1,
+    "name": "Organic Tomatoes",
+    "category": "Vegetables",
+    "price": 45,
+    "unit": "kg",
+    "bulkPricing": [
+      { "quantity": "5kg", "price": 42 },
+      { "quantity": "10kg", "price": 40 }
+    ],
+    "stock": 28,
+    "farmerId": "1",
+    "tags": ["Organic", "Fresh", "Local"],
+    "imageUrl": "https://images.unsplash.com/photo-1546470427-e4f5b9edc13c?w=400&h=400&fit=crop",
+    "isOnSale": true
+  },
+  {
+    "Id": 2,
+    "name": "Fresh Spinach",
+    "category": "Vegetables",
+    "price": 25,
+    "unit": "bunch",
+    "bulkPricing": [
+      { "quantity": "5 bunches", "price": 22 },
+      { "quantity": "10 bunches", "price": 20 }
+    ],
+    "stock": 15,
+    "farmerId": "1",
+    "tags": ["Organic", "Fresh", "Vegan"],
+    "imageUrl": "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400&h=400&fit=crop",
+    "isOnSale": false
+  },
+  {
+    "Id": 3,
+    "name": "Royal Gala Apples",
+    "category": "Fruits",
+    "price": 120,
+    "unit": "kg",
+    "bulkPricing": [
+      { "quantity": "3kg", "price": 115 },
+      { "quantity": "5kg", "price": 110 }
+    ],
+    "stock": 35,
+    "farmerId": "2",
+    "tags": ["Fresh", "Sweet", "Local"],
+    "imageUrl": "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400&h=400&fit=crop",
+    "isOnSale": true
+  },
+  {
+    "Id": 4,
+    "name": "Organic Bananas",
+    "category": "Fruits",
+    "price": 55,
+    "unit": "dozen",
+    "bulkPricing": [
+      { "quantity": "2 dozen", "price": 50 },
+      { "quantity": "5 dozen", "price": 45 }
+    ],
+    "stock": 42,
+    "farmerId": "2",
+    "tags": ["Organic", "Fresh", "Vegan"],
+    "imageUrl": "https://images.unsplash.com/photo-1603833665858-e61d17a86224?w=400&h=400&fit=crop",
+    "isOnSale": false
+  },
+  {
+    "Id": 5,
+    "name": "Farm Fresh Milk",
+    "category": "Dairy",
+    "price": 65,
+    "unit": "liter",
+    "bulkPricing": [
+      { "quantity": "5 liters", "price": 62 },
+      { "quantity": "10 liters", "price": 58 }
+    ],
+    "stock": 20,
+    "farmerId": "3",
+    "tags": ["Fresh", "Local", "Organic"],
+    "imageUrl": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&h=400&fit=crop",
+    "isOnSale": false
+  },
+  {
+    "Id": 6,
+    "name": "Artisan Cheese",
+    "category": "Dairy",
+    "price": 280,
+    "unit": "250g",
+    "bulkPricing": [
+      { "quantity": "500g", "price": 260 },
+      { "quantity": "1kg", "price": 240 }
+    ],
+    "stock": 8,
+    "farmerId": "3",
+    "tags": ["Artisan", "Local", "Premium"],
+    "imageUrl": "https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=400&h=400&fit=crop",
+    "isOnSale": true
+  },
+  {
+    "Id": 7,
+    "name": "Whole Wheat Bread",
+    "category": "Bakery",
+    "price": 45,
+    "unit": "loaf",
+    "bulkPricing": [
+      { "quantity": "3 loaves", "price": 42 },
+      { "quantity": "5 loaves", "price": 38 }
+    ],
+    "stock": 12,
+    "farmerId": "4",
+    "tags": ["Whole Grain", "Fresh", "Local"],
+    "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&h=400&fit=crop",
+    "isOnSale": false
+  },
+  {
+    "Id": 8,
+    "name": "Sourdough Bread",
+    "category": "Bakery",
+    "price": 85,
+    "unit": "loaf",
+    "bulkPricing": [
+      { "quantity": "2 loaves", "price": 80 },
+      { "quantity": "4 loaves", "price": 75 }
+    ],
+    "stock": 6,
+    "farmerId": "4",
+    "tags": ["Artisan", "Sourdough", "Premium"],
+    "imageUrl": "https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=400&h=400&fit=crop",
+    "isOnSale": true
+  },
+  {
+    "Id": 9,
+    "name": "Free Range Chicken",
+    "category": "Meat",
+    "price": 320,
+    "unit": "kg",
+    "bulkPricing": [
+      { "quantity": "2kg", "price": 310 },
+      { "quantity": "5kg", "price": 295 }
+    ],
+    "stock": 10,
+    "farmerId": "5",
+    "tags": ["Free Range", "Fresh", "Local"],
+    "imageUrl": "https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=400&h=400&fit=crop",
+    "isOnSale": false
+  },
+  {
+    "Id": 10,
+    "name": "Wild Caught Salmon",
+    "category": "Meat",
+    "price": 580,
+    "unit": "kg",
+    "bulkPricing": [
+      { "quantity": "2kg", "price": 560 },
+      { "quantity": "3kg", "price": 540 }
+    ],
+    "stock": 5,
+    "farmerId": "5",
+    "tags": ["Wild Caught", "Fresh", "Premium"],
+    "imageUrl": "https://images.unsplash.com/photo-1544943910-4c1dc44aab44?w=400&h=400&fit=crop",
+    "isOnSale": true
+  },
+  {
+    "Id": 11,
+    "name": "Organic Carrots",
+    "category": "Vegetables",
+    "price": 35,
+    "unit": "kg",
+    "bulkPricing": [
+      { "quantity": "3kg", "price": 32 },
+      { "quantity": "5kg", "price": 30 }
+    ],
+    "stock": 25,
+    "farmerId": "1",
+    "tags": ["Organic", "Fresh", "Local"],
+    "imageUrl": "https://images.unsplash.com/photo-1445282768818-728615cc910a?w=400&h=400&fit=crop",
+    "isOnSale": false
+  },
+  {
+    "Id": 12,
+    "name": "Sweet Oranges",
+    "category": "Fruits",
+    "price": 75,
+    "unit": "kg",
+    "bulkPricing": [
+      { "quantity": "3kg", "price": 70 },
+      { "quantity": "5kg", "price": 65 }
+    ],
+    "stock": 30,
+    "farmerId": "2",
+    "tags": ["Fresh", "Sweet", "Vitamin C"],
+    "imageUrl": "https://images.unsplash.com/photo-1547514701-42782101795e?w=400&h=400&fit=crop",
+    "isOnSale": true
+  },
+  {
+    "Id": 13,
+    "name": "Greek Yogurt",
+    "category": "Dairy",
+    "price": 95,
+    "unit": "500g",
+    "bulkPricing": [
+      { "quantity": "1kg", "price": 180 },
+      { "quantity": "2kg", "price": 340 }
+    ],
+    "stock": 18,
+    "farmerId": "3",
+    "tags": ["Greek", "Protein", "Fresh"],
+    "imageUrl": "https://images.unsplash.com/photo-1571212515416-4bf11a7e5c3f?w=400&h=400&fit=crop",
+    "isOnSale": false
+  },
+  {
+    "Id": 14,
+    "name": "Croissants",
+    "category": "Bakery",
+    "price": 15,
+    "unit": "piece",
+    "bulkPricing": [
+      { "quantity": "6 pieces", "price": 12 },
+      { "quantity": "12 pieces", "price": 10 }
+    ],
+    "stock": 24,
+    "farmerId": "4",
+    "tags": ["Buttery", "Fresh", "French"],
+    "imageUrl": "https://images.unsplash.com/photo-1555507036-ab794f4ade75?w=400&h=400&fit=crop",
+    "isOnSale": true
+  },
+  {
+    "Id": 15,
+    "name": "Organic Broccoli",
+    "category": "Vegetables",
+    "price": 65,
+    "unit": "kg",
+    "bulkPricing": [
+      { "quantity": "2kg", "price": 62 },
+      { "quantity": "3kg", "price": 58 }
+    ],
+    "stock": 20,
+    "farmerId": "1",
+    "tags": ["Organic", "Fresh", "Superfood"],
+    "imageUrl": "https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=400&h=400&fit=crop",
+    "isOnSale": false
+  },
+  {
+    "Id": 16,
+    "name": "Fresh Strawberries",
+    "category": "Fruits",
+    "price": 180,
+    "unit": "250g",
+    "bulkPricing": [
+      { "quantity": "500g", "price": 350 },
+      { "quantity": "1kg", "price": 680 }
+    ],
+    "stock": 12,
+    "farmerId": "2",
+    "tags": ["Fresh", "Sweet", "Antioxidants"],
+    "imageUrl": "https://images.unsplash.com/photo-1464965911861-746a04b4bf58?w=400&h=400&fit=crop",
+    "isOnSale": true
+  }
+]
