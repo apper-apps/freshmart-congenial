@@ -16,13 +16,13 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const loadTrendingProducts = async () => {
+const loadTrendingProducts = async () => {
     try {
       setLoading(true);
       setError("");
-      const data = await productService.getAll();
-      // Get first 8 products as trending
-      setTrendingProducts(data.slice(0, 8));
+      // Use location-based trending algorithm
+      const data = await productService.getTrendingByLocation("default");
+      setTrendingProducts(data);
     } catch (err) {
       setError("Failed to load trending products");
     } finally {
@@ -89,15 +89,21 @@ const Home = () => {
       
       <DealsCarousel />
 
-      {/* Trending Products */}
+{/* Trending Products */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-3xl font-display font-bold text-gray-900 mb-2">
-                🔥 Trending Products
-              </h2>
-              <p className="text-gray-600">Most popular items in your area</p>
+              <div className="flex items-center gap-3 mb-2">
+                <h2 className="text-3xl font-display font-bold text-gray-900">
+                  🔥 Trending in Your Area
+                </h2>
+                <Badge variant="secondary" className="text-xs font-medium">
+                  <ApperIcon name="MapPin" className="w-3 h-3 mr-1" />
+                  Local Favorites
+                </Badge>
+              </div>
+              <p className="text-gray-600">Popular products based on your location's preferences</p>
             </div>
             <Button
               onClick={() => navigate("/categories")}
