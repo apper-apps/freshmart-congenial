@@ -14,14 +14,14 @@ const AdminDashboard = () => {
       path: "/admin/payment-gateways",
       color: "primary"
     },
-    {
+{
       id: "orders",
       name: "Order Management",
       description: "View and manage customer orders",
       icon: "ShoppingBag",
       path: "/admin/orders",
       color: "secondary",
-      comingSoon: true
+      comingSoon: false
     },
     {
       id: "products",

@@ -37,6 +37,12 @@ export const orderService = {
       throw new Error("Order not found");
     }
     ordersData[index].status = status;
+    ordersData[index].statusHistory = ordersData[index].statusHistory || [];
+    ordersData[index].statusHistory.push({
+      status,
+      timestamp: new Date().toISOString(),
+      updatedBy: "Admin"
+    });
     return { ...ordersData[index] };
   },
 
@@ -47,7 +53,86 @@ export const orderService = {
       throw new Error("Order not found");
     }
     const deleted = ordersData.splice(index, 1)[0];
-return { ...deleted };
+    return { ...deleted };
+  },
+
+  async getFiltered(filters) {
+    await delay(400);
+    let filtered = [...ordersData];
+
+    if (filters.status && filters.status.length > 0) {
+      filtered = filtered.filter(order => filters.status.includes(order.status));
+    }
+
+    if (filters.dateFrom) {
+      filtered = filtered.filter(order => new Date(order.createdAt) >= new Date(filters.dateFrom));
+    }
+
+    if (filters.dateTo) {
+      filtered = filtered.filter(order => new Date(order.createdAt) <= new Date(filters.dateTo));
+    }
+
+    if (filters.customerSearch) {
+      const search = filters.customerSearch.toLowerCase();
+      filtered = filtered.filter(order => 
+        order.deliveryInfo?.fullName?.toLowerCase().includes(search) ||
+        order.Id.toString().includes(search)
+      );
+    }
+
+    if (filters.paymentMethod) {
+      filtered = filtered.filter(order => order.paymentMethod === filters.paymentMethod);
+    }
+
+    if (filters.minAmount) {
+      filtered = filtered.filter(order => order.total >= filters.minAmount);
+    }
+
+    if (filters.maxAmount) {
+      filtered = filtered.filter(order => order.total <= filters.maxAmount);
+    }
+
+    return filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  },
+
+  async getStatistics() {
+    await delay(300);
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    const stats = {
+      pendingVerification: ordersData.filter(o => o.status === 'pending').length,
+      verifiedPayments: ordersData.filter(o => o.status === 'verified' || o.status === 'processing').length,
+      packedOrders: ordersData.filter(o => o.status === 'packed').length,
+      shippedDeliveries: ordersData.filter(o => o.status === 'shipped').length,
+      todayDeliveries: ordersData.filter(o => 
+        o.status === 'delivered' && new Date(o.createdAt) >= todayStart
+      ).length,
+      totalRevenue: ordersData.reduce((sum, order) => sum + order.total, 0),
+      todayRevenue: ordersData.filter(o => 
+        new Date(o.createdAt) >= todayStart
+      ).reduce((sum, order) => sum + order.total, 0)
+    };
+
+    return stats;
+  },
+
+  async updatePaymentVerification(id, verified, notes) {
+    await delay(300);
+    const index = ordersData.findIndex(o => o.Id === id);
+    if (index === -1) {
+      throw new Error("Order not found");
+    }
+    
+    ordersData[index].paymentVerified = verified;
+    ordersData[index].verificationNotes = notes;
+    ordersData[index].verificationDate = new Date().toISOString();
+    
+    if (verified) {
+      ordersData[index].status = 'verified';
+    }
+    
+    return { ...ordersData[index] };
   },
 
   async getFrequentlyPurchased() {
