@@ -321,7 +321,159 @@ const OrderDetailsModal = ({ order, onClose, onStatusUpdate, statusConfig }) => 
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none"
                     rows={3}
                   />
-                </div>
+</div>
+
+                {/* Transaction Validation Section */}
+                {order.paymentValidation && (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Transaction Validation Results</h4>
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+                      {/* Overall Status */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700">Overall Status</span>
+                        <Badge 
+                          variant={
+                            order.paymentValidation.overallStatus === 'valid' ? 'success' :
+                            order.paymentValidation.overallStatus === 'invalid' ? 'error' : 'warning'
+                          }
+                          className="flex items-center space-x-1"
+                        >
+                          <ApperIcon 
+                            name={
+                              order.paymentValidation.overallStatus === 'valid' ? 'CheckCircle' :
+                              order.paymentValidation.overallStatus === 'invalid' ? 'XCircle' : 'AlertCircle'
+                            } 
+                            className="w-3 h-3" 
+                          />
+                          <span>{order.paymentValidation.overallStatus}</span>
+                        </Badge>
+                      </div>
+
+                      {/* Validation Results */}
+                      {order.paymentValidation.results && (
+                        <div className="space-y-3">
+                          {/* Bank Reference Validation */}
+                          {order.paymentValidation.results.bankReference && (
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-2">
+                                  <ApperIcon name="Building" className="w-4 h-4 text-gray-600" />
+                                  <span className="text-sm font-medium text-gray-700">Bank Reference</span>
+                                </div>
+                                <p className="text-xs text-gray-600 mt-1">
+                                  {order.paymentValidation.results.bankReference.message}
+                                </p>
+                                {order.paymentValidation.results.bankReference.details && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Reference: {order.paymentValidation.results.bankReference.details.reference}
+                                  </p>
+                                )}
+                              </div>
+                              <Badge 
+                                variant={order.paymentValidation.results.bankReference.status === 'valid' ? 'success' : 'error'}
+                                size="sm"
+                              >
+                                {order.paymentValidation.results.bankReference.status}
+                              </Badge>
+                            </div>
+                          )}
+
+                          {/* Timestamp Validation */}
+                          {order.paymentValidation.results.timestamp && (
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-2">
+                                  <ApperIcon name="Clock" className="w-4 h-4 text-gray-600" />
+                                  <span className="text-sm font-medium text-gray-700">Payment Timing</span>
+                                </div>
+                                <p className="text-xs text-gray-600 mt-1">
+                                  {order.paymentValidation.results.timestamp.message}
+                                </p>
+                                {order.paymentValidation.results.timestamp.details && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Time difference: {order.paymentValidation.results.timestamp.details.timeDifferenceMinutes} minutes
+                                  </p>
+                                )}
+                              </div>
+                              <Badge 
+                                variant={order.paymentValidation.results.timestamp.status === 'valid' ? 'success' : 'error'}
+                                size="sm"
+                              >
+                                {order.paymentValidation.results.timestamp.status}
+                              </Badge>
+                            </div>
+                          )}
+
+                          {/* Amount Validation */}
+                          {order.paymentValidation.results.amount && (
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-2">
+                                  <ApperIcon name="DollarSign" className="w-4 h-4 text-gray-600" />
+                                  <span className="text-sm font-medium text-gray-700">Amount Matching</span>
+                                </div>
+                                <p className="text-xs text-gray-600 mt-1">
+                                  {order.paymentValidation.results.amount.message}
+                                </p>
+                                {order.paymentValidation.results.amount.details && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Paid: RS {order.paymentValidation.results.amount.details.paidAmount} | 
+                                    Expected: RS {order.paymentValidation.results.amount.details.expectedAmount}
+                                  </p>
+                                )}
+                              </div>
+                              <Badge 
+                                variant={order.paymentValidation.results.amount.status === 'valid' ? 'success' : 'error'}
+                                size="sm"
+                              >
+                                {order.paymentValidation.results.amount.status}
+                              </Badge>
+                            </div>
+                          )}
+
+                          {/* Third-party Validation */}
+                          {order.paymentValidation.results.thirdParty && (
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-2">
+                                  <ApperIcon name="Shield" className="w-4 h-4 text-gray-600" />
+                                  <span className="text-sm font-medium text-gray-700">Third-party Verification</span>
+                                </div>
+                                <p className="text-xs text-gray-600 mt-1">
+                                  {order.paymentValidation.results.thirdParty.message}
+                                </p>
+                                {order.paymentValidation.results.thirdParty.details && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Validation ID: {order.paymentValidation.results.thirdParty.details.validationId}
+                                  </p>
+                                )}
+                              </div>
+                              <Badge 
+                                variant={order.paymentValidation.results.thirdParty.status === 'valid' ? 'success' : 
+                                        order.paymentValidation.results.thirdParty.status === 'error' ? 'warning' : 'error'}
+                                size="sm"
+                              >
+                                {order.paymentValidation.results.thirdParty.status}
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Validation Timestamp */}
+                      <div className="pt-3 border-t border-gray-200">
+                        <p className="text-xs text-gray-500">
+                          Validated on: {new Date(order.paymentValidation.timestamp).toLocaleString()}
+                        </p>
+                        {order.paymentValidation.transactionId && (
+                          <p className="text-xs text-gray-500">
+                            Transaction ID: {order.paymentValidation.transactionId}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Verification Actions */}
                 {order.status === 'pending' && (

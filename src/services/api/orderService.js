@@ -1,6 +1,7 @@
 import ordersData from "@/services/mockData/orders.json";
 import React from "react";
 import { notificationService } from "@/services/api/notificationService";
+import { paymentGatewayService } from "@/services/api/paymentGatewayService";
 import Error from "@/components/ui/Error";
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -168,10 +169,138 @@ async updatePaymentVerification(id, verified, notes) {
     }
     
     return { ...ordersData[index] };
+},
+
+  async validatePaymentTransaction(id, transactionData) {
+    await delay(500);
+    const index = ordersData.findIndex(o => o.Id === id);
+    if (index === -1) {
+      throw new Error("Order not found");
+    }
+
+    const order = ordersData[index];
+    
+    // Import payment gateway service for validation
+    const { paymentGatewayService } = await import('@/services/api/paymentGatewayService');
+    
+    // Prepare validation data
+    const validationPayload = {
+      transactionId: transactionData.transactionId,
+      orderId: id,
+      gatewayId: transactionData.gatewayId || order.paymentMethod,
+      bankReference: transactionData.bankReference,
+      paymentTimestamp: transactionData.paymentTimestamp,
+      orderTimestamp: order.createdAt,
+      paidAmount: transactionData.paidAmount || order.total,
+      expectedAmount: order.total
+    };
+
+    try {
+      // Perform comprehensive validation
+      const validationResult = await paymentGatewayService.validateTransaction(validationPayload, 'admin');
+      
+      // Update order with validation results
+      ordersData[index] = {
+        ...order,
+        paymentValidation: validationResult,
+        paymentVerified: validationResult.overallStatus === 'valid',
+        verificationNotes: `Automated validation: ${validationResult.overallStatus}`,
+        verificationDate: new Date().toISOString(),
+        status: validationResult.overallStatus === 'valid' ? 'verified' : 'pending'
+      };
+
+      // Send notification if validation passed
+      if (validationResult.overallStatus === 'valid') {
+        try {
+          await notificationService.sendAutomatedNotification(
+            id,
+            'verified',
+            order.deliveryInfo,
+            ordersData[index]
+          );
+        } catch (notificationError) {
+          console.warn('Validation notification failed:', notificationError.message);
+        }
+      }
+
+      return {
+        order: { ...ordersData[index] },
+        validation: validationResult
+      };
+
+    } catch (error) {
+      // Update order with validation error
+      ordersData[index] = {
+        ...order,
+        paymentValidation: {
+          status: 'error',
+          error: error.message,
+          timestamp: new Date().toISOString()
+        },
+        paymentVerified: false,
+        verificationNotes: `Validation error: ${error.message}`,
+        verificationDate: new Date().toISOString()
+      };
+
+      throw new Error(`Transaction validation failed: ${error.message}`);
+    }
+  },
+
+  async bulkValidateTransactions(orderIds, transactionDataList) {
+    await delay(1000);
+    
+    const results = [];
+    
+    for (let i = 0; i < orderIds.length; i++) {
+      const orderId = orderIds[i];
+      const transactionData = transactionDataList[i];
+      
+      try {
+        const result = await this.validatePaymentTransaction(orderId, transactionData);
+        results.push({
+          orderId,
+          success: true,
+          validation: result.validation,
+          order: result.order
+        });
+      } catch (error) {
+        results.push({
+          orderId,
+          success: false,
+          error: error.message
+        });
+      }
+    }
+    
+    return results;
+  },
+
+  async getValidationStatistics() {
+    await delay(200);
+    
+    const validatedOrders = ordersData.filter(order => order.paymentValidation);
+    const total = validatedOrders.length;
+    const valid = validatedOrders.filter(order => 
+      order.paymentValidation.overallStatus === 'valid').length;
+    const invalid = validatedOrders.filter(order => 
+      order.paymentValidation.overallStatus === 'invalid').length;
+    const errors = validatedOrders.filter(order => 
+      order.paymentValidation.overallStatus === 'error').length;
+    
+    return {
+      total,
+      valid,
+      invalid,
+      errors,
+      validPercentage: total > 0 ? ((valid / total) * 100).toFixed(1) : 0,
+      pendingValidation: ordersData.filter(order => 
+        !order.paymentValidation && order.status === 'pending').length
+pendingValidation: ordersData.filter(order => 
+        !order.paymentValidation && order.status === 'pending').length
+    };
   },
 
   async getFrequentlyPurchased() {
-    await delay(300);
     
     // Get all orders and extract product purchase frequency
     const productFrequency = {};
