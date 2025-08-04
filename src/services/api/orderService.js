@@ -2,7 +2,7 @@ import ordersData from "@/services/mockData/orders.json";
 import React from "react";
 import { notificationService } from "@/services/api/notificationService";
 import { paymentGatewayService } from "@/services/api/paymentGatewayService";
-import { offlineService } from "@/services/offlineService";
+import offlineService from "@/services/offlineService";
 import Error from "@/components/ui/Error";
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
