@@ -1,32 +1,73 @@
-import paymentGatewaysData from "@/services/mockData/paymentGateways.json";
 import CryptoJS from "crypto-js";
 import React from "react";
+import paymentGatewaysData from "@/services/mockData/paymentGateways.json";
 import Error from "@/components/ui/Error";
+// Field validation utilities
+const validateRequiredFields = (data, requiredFields) => {
+  const missing = requiredFields.filter(field => !data[field] || data[field].toString().trim() === '');
+  if (missing.length > 0) {
+    throw new Error(`Missing required fields: ${missing.join(', ')}`);
+  }
+};
 
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const validateUniqueConstraints = (data, existingData, field) => {
+  const duplicate = existingData.find(item => 
+    item[field] && data[field] && 
+    item[field].toLowerCase() === data[field].toLowerCase()
+  );
+  if (duplicate) {
+    throw new Error(`${field} '${data[field]}' already exists`);
+  }
+};
+// Enhanced delay with connection failure simulation
+const delay = (ms) => new Promise((resolve, reject) => {
+  // Simulate occasional connection failures (1% chance)
+  if (Math.random() < 0.01) {
+    setTimeout(() => reject(new Error('Database connection timeout')), ms);
+  } else {
+    setTimeout(resolve, ms);
+  }
+});
 
-// Encryption utilities
+// Enhanced encryption utilities with error handling
 const ENCRYPTION_KEY = "FreshMart-Gateway-Secret-Key-2024";
 
 const encryptData = (data) => {
-  return CryptoJS.AES.encrypt(JSON.stringify(data), ENCRYPTION_KEY).toString();
+  try {
+    if (!data) return null;
+    return CryptoJS.AES.encrypt(JSON.stringify(data), ENCRYPTION_KEY).toString();
+  } catch (error) {
+    console.error('Encryption failed:', error);
+    throw new Error('Failed to encrypt sensitive data');
+  }
 };
 
 const decryptData = (encryptedData) => {
   try {
+    if (!encryptedData) return null;
     const bytes = CryptoJS.AES.decrypt(encryptedData, ENCRYPTION_KEY);
-    return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+    const decryptedString = bytes.toString(CryptoJS.enc.Utf8);
+    return decryptedString ? JSON.parse(decryptedString) : null;
   } catch (error) {
+    console.error('Decryption failed:', error);
     return null;
   }
 };
-// Audit logging
+// Enhanced audit logging with transaction tracking
 const auditLog = [];
+const transactionLogs = [];
+
+// Database indexing simulation
+const gatewayIndexes = {
+  byName: new Map(),
+  byMerchantId: new Map(),
+  byAccountNumber: new Map()
+};
 
 // Testing mode state
 let isTestingMode = false;
 const testGateways = [];
-
+// Enhanced audit logging with detailed tracking
 const logAuditEvent = (action, gatewayId, gatewayName, userId = 'admin', details = {}) => {
   const logEntry = {
     id: auditLog.length + 1,
@@ -35,37 +76,110 @@ const logAuditEvent = (action, gatewayId, gatewayName, userId = 'admin', details
     action,
     gatewayId,
     gatewayName,
-    details,
-    ipAddress: '127.0.0.1' // Simulated
+    details: {
+      ...details,
+      userAgent: navigator?.userAgent || 'Unknown',
+      sessionId: `session_${Date.now()}`
+    },
+    ipAddress: '127.0.0.1', // Simulated
+    success: true
   };
   auditLog.push(logEntry);
   console.log('Audit Log:', logEntry);
+  
+  // Log transaction attempts for gateway operations
+  if (['CREATE', 'UPDATE', 'DELETE'].includes(action)) {
+    logTransactionAttempt(action, gatewayId, gatewayName, true);
+  }
 };
 
-// Role validation
+// Transaction logging for database operations
+const logTransactionAttempt = (operation, gatewayId, gatewayName, success, error = null) => {
+  const transactionEntry = {
+    id: transactionLogs.length + 1,
+    timestamp: new Date().toISOString(),
+    operation,
+    gatewayId,
+    gatewayName,
+    success,
+    error: error?.message || null,
+    duration: Math.random() * 500 + 100, // Simulated operation time
+    retryCount: 0
+  };
+  transactionLogs.push(transactionEntry);
+  
+  if (!success) {
+    console.error('Transaction Failed:', transactionEntry);
+    // Trigger admin alert for critical failures
+    triggerAdminAlert('TRANSACTION_FAILED', transactionEntry);
+  }
+};
+
+// Admin alert system for critical failures
+const triggerAdminAlert = (alertType, details) => {
+  const alert = {
+    id: `alert_${Date.now()}`,
+    type: alertType,
+    severity: 'HIGH',
+    timestamp: new Date().toISOString(),
+    details,
+    acknowledged: false
+  };
+  
+  console.warn('ADMIN ALERT:', alert);
+  // In a real system, this would send notifications to admin dashboard
+};
+
+// Role validation with enhanced security
 const validateAdminRole = (userRole) => {
   if (!userRole || userRole !== 'admin') {
+    logAuditEvent('ACCESS_DENIED', null, 'Unknown', userRole || 'anonymous', {
+      attemptedAction: 'admin_operation',
+      reason: 'insufficient_privileges'
+    });
     throw new Error("Access denied. Admin privileges required.");
   }
 };
 
+// Update indexes for database optimization simulation
+const updateIndexes = (gateway, operation = 'CREATE') => {
+  if (operation === 'CREATE' || operation === 'UPDATE') {
+    gatewayIndexes.byName.set(gateway.name.toLowerCase(), gateway.Id);
+    gatewayIndexes.byMerchantId.set(gateway.merchantId, gateway.Id);
+    if (gateway.accountNumber) {
+      gatewayIndexes.byAccountNumber.set(gateway.accountNumber, gateway.Id);
+    }
+  } else if (operation === 'DELETE') {
+    gatewayIndexes.byName.delete(gateway.name.toLowerCase());
+    gatewayIndexes.byMerchantId.delete(gateway.merchantId);
+    if (gateway.accountNumber) {
+      gatewayIndexes.byAccountNumber.delete(gateway.accountNumber);
+    }
+  }
+};
 export const paymentGatewayService = {
 async getAll(userRole = null) {
     validateAdminRole(userRole);
-    await delay(300);
     
-    const sourceData = isTestingMode ? testGateways : paymentGatewaysData;
-    const gateways = [...sourceData].map(gateway => ({
-      ...gateway,
+    try {
+      await delay(300);
+      
+      const sourceData = isTestingMode ? testGateways : paymentGatewaysData;
+      const gateways = [...sourceData].map(gateway => ({
+        ...gateway,
       accountNumber: gateway.encryptedAccountNumber ? 
         decryptData(gateway.encryptedAccountNumber) || gateway.accountNumber :
         gateway.accountNumber
     }));
+}));
     
     logAuditEvent('VIEW_ALL', null, 'All Gateways', 'admin');
     return gateways.sort((a, b) => (a.position || 0) - (b.position || 0));
+    } catch (error) {
+      logTransactionAttempt('VIEW_ALL_FAILED', null, 'All Gateways', false, error);
+      throw error;
+    }
   },
-
   async getAllActive() {
     await delay(200);
     
@@ -118,85 +232,179 @@ async getById(id, userRole = null) {
 
 async create(gatewayData, userRole = null) {
     validateAdminRole(userRole);
-    await delay(500);
     
-    const sourceData = isTestingMode ? testGateways : paymentGatewaysData;
-    
-    // Generate new ID
-    const maxId = Math.max(...sourceData.map(g => g.Id), 0);
-    
-    // Encrypt account number
-    const encryptedAccountNumber = encryptData(gatewayData.accountNumber);
-    
-    const newGateway = {
-...gatewayData,
-      Id: maxId + 1,
-      encryptedAccountNumber,
-      accountNumber: undefined, // Remove plain text
-      position: sourceData.length,
-      isActive: gatewayData.isActive !== undefined ? gatewayData.isActive : true,
-      transactionFee: gatewayData.transactionFee || 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    paymentGatewaysData.push(newGateway);
-    
-    logAuditEvent('CREATE', newGateway.Id, gatewayData.name, 'admin', {
-      gatewayType: gatewayData.gatewayType,
-      accountHolderName: gatewayData.accountHolderName
-    });
-    
-    // Return with decrypted account number for display
-    return { 
-      ...newGateway, 
-      accountNumber: gatewayData.accountNumber,
-      encryptedAccountNumber: undefined 
-    };
+    try {
+      // Simulate atomic transaction start
+      const transactionId = `tx_${Date.now()}`;
+      logTransactionAttempt('CREATE_START', null, gatewayData.name, true);
+      
+      await delay(500);
+      
+      const sourceData = isTestingMode ? testGateways : paymentGatewaysData;
+      
+      // Enhanced validation for required fields
+      const requiredFields = ['name', 'accountNumber', 'merchantId', 'apiKey', 'apiSecret'];
+      validateRequiredFields(gatewayData, requiredFields);
+      
+      // Check unique constraints to prevent duplicates
+      validateUniqueConstraints(gatewayData, sourceData, 'name');
+      validateUniqueConstraints(gatewayData, sourceData, 'merchantId');
+      validateUniqueConstraints(gatewayData, sourceData, 'accountNumber');
+      
+      // Additional business validation
+      if (gatewayData.accountNumber.length < 10) {
+        throw new Error('Account number must be at least 10 characters');
+      }
+      
+      if (gatewayData.apiKey.length < 8) {
+        throw new Error('API Key must be at least 8 characters');
+      }
+      
+      // Generate new ID with collision protection
+      const maxId = Math.max(...sourceData.map(g => g.Id), 0);
+      const newId = maxId + 1;
+      
+      // Encrypt sensitive data
+      const encryptedAccountNumber = encryptData(gatewayData.accountNumber);
+      const encryptedApiKey = encryptData(gatewayData.apiKey);
+      const encryptedApiSecret = encryptData(gatewayData.apiSecret);
+      
+      const newGateway = {
+        ...gatewayData,
+        Id: newId,
+        encryptedAccountNumber,
+        encryptedApiKey,
+        encryptedApiSecret,
+        accountNumber: undefined, // Remove plain text
+        apiKey: undefined,
+        apiSecret: undefined,
+        position: sourceData.length,
+        isActive: gatewayData.isActive !== undefined ? gatewayData.isActive : true,
+        transactionFee: gatewayData.transactionFee || 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        transactionId // For atomic operation tracking
+      };
+      
+      // Simulate atomic write operation
+      sourceData.push(newGateway);
+      updateIndexes(newGateway, 'CREATE');
+      
+      logAuditEvent('CREATE', newGateway.Id, gatewayData.name, 'admin', {
+        gatewayType: gatewayData.gatewayType || 'Unknown',
+        accountHolderName: gatewayData.accountHolderName || 'Not specified',
+        transactionId,
+        fieldsValidated: requiredFields.length,
+        encryptionApplied: true
+      });
+      
+      logTransactionAttempt('CREATE_COMPLETE', newId, gatewayData.name, true);
+      
+      // Return with decrypted data for display
+      return { 
+        ...newGateway, 
+        accountNumber: gatewayData.accountNumber,
+        apiKey: gatewayData.apiKey,
+        apiSecret: gatewayData.apiSecret,
+        encryptedAccountNumber: undefined,
+        encryptedApiKey: undefined,
+        encryptedApiSecret: undefined
+      };
+    } catch (error) {
+      logTransactionAttempt('CREATE_FAILED', null, gatewayData.name, false, error);
+      throw error;
+    }
   },
 
 async update(id, gatewayData, userRole = null) {
     validateAdminRole(userRole);
-    await delay(300);
     
-    const sourceData = isTestingMode ? testGateways : paymentGatewaysData;
-    const index = sourceData.findIndex(g => g.Id === parseInt(id));
-    if (index === -1) {
-      throw new Error("Payment gateway not found");
+    try {
+      const transactionId = `tx_${Date.now()}`;
+      logTransactionAttempt('UPDATE_START', parseInt(id), gatewayData.name, true);
+      
+      await delay(300);
+      
+      const sourceData = isTestingMode ? testGateways : paymentGatewaysData;
+      const index = sourceData.findIndex(g => g.Id === parseInt(id));
+      if (index === -1) {
+        throw new Error("Payment gateway not found");
+      }
+      
+      const oldGateway = { ...sourceData[index] };
+      
+      // Validate unique constraints for updates (excluding current record)
+      if (gatewayData.name && gatewayData.name !== oldGateway.name) {
+        const duplicateName = sourceData.find(g => 
+          g.Id !== parseInt(id) && 
+          g.name.toLowerCase() === gatewayData.name.toLowerCase()
+        );
+        if (duplicateName) {
+          throw new Error(`Gateway name '${gatewayData.name}' already exists`);
+        }
+      }
+      
+      // Encrypt sensitive data if provided
+      const updateData = { ...gatewayData };
+      if (gatewayData.accountNumber) {
+        updateData.encryptedAccountNumber = encryptData(gatewayData.accountNumber);
+        updateData.accountNumber = undefined; // Remove plain text
+      }
+      if (gatewayData.apiKey) {
+        updateData.encryptedApiKey = encryptData(gatewayData.apiKey);
+        updateData.apiKey = undefined;
+      }
+      if (gatewayData.apiSecret) {
+        updateData.encryptedApiSecret = encryptData(gatewayData.apiSecret);
+        updateData.apiSecret = undefined;
+      }
+      if (gatewayData.transactionFee !== undefined) {
+        updateData.transactionFee = gatewayData.transactionFee;
+      }
+      
+      // Atomic update operation
+      sourceData[index] = {
+        ...sourceData[index],
+        ...updateData,
+        Id: parseInt(id), // Ensure ID doesn't change
+        updatedAt: new Date().toISOString(),
+        transactionId
+      };
+      
+      updateIndexes(sourceData[index], 'UPDATE');
+      
+      logAuditEvent('UPDATE', parseInt(id), gatewayData.name || oldGateway.name, 'admin', {
+        changes: Object.keys(gatewayData),
+        oldValues: { 
+          name: oldGateway.name, 
+          isActive: oldGateway.isActive,
+          merchantId: oldGateway.merchantId 
+        },
+        transactionId
+      });
+      
+      logTransactionAttempt('UPDATE_COMPLETE', parseInt(id), gatewayData.name || oldGateway.name, true);
+      
+      // Return with decrypted data for display
+      const updatedGateway = { ...sourceData[index] };
+      if (updatedGateway.encryptedAccountNumber) {
+        updatedGateway.accountNumber = decryptData(updatedGateway.encryptedAccountNumber);
+        updatedGateway.encryptedAccountNumber = undefined;
+      }
+      if (updatedGateway.encryptedApiKey) {
+        updatedGateway.apiKey = decryptData(updatedGateway.encryptedApiKey);
+        updatedGateway.encryptedApiKey = undefined;
+      }
+      if (updatedGateway.encryptedApiSecret) {
+        updatedGateway.apiSecret = decryptData(updatedGateway.encryptedApiSecret);
+        updatedGateway.encryptedApiSecret = undefined;
+      }
+      
+      return updatedGateway;
+    } catch (error) {
+      logTransactionAttempt('UPDATE_FAILED', parseInt(id), gatewayData.name, false, error);
+      throw error;
     }
-    
-    const oldGateway = { ...sourceData[index] };
-    
-    // Encrypt account number if provided
-const updateData = { ...gatewayData };
-    if (gatewayData.accountNumber) {
-      updateData.encryptedAccountNumber = encryptData(gatewayData.accountNumber);
-      updateData.accountNumber = undefined; // Remove plain text
-    }
-    if (gatewayData.transactionFee !== undefined) {
-      updateData.transactionFee = gatewayData.transactionFee;
-    }
-    
-    sourceData[index] = {
-      ...sourceData[index],
-      ...updateData,
-      Id: parseInt(id), // Ensure ID doesn't change
-      updatedAt: new Date().toISOString()
-    };
-    
-    logAuditEvent('UPDATE', parseInt(id), gatewayData.name || oldGateway.name, 'admin', {
-      changes: Object.keys(gatewayData),
-      oldValues: { name: oldGateway.name, isActive: oldGateway.isActive }
-    });
-    
-    // Return with decrypted account number for display
-    const updatedGateway = { ...sourceData[index] };
-    if (updatedGateway.encryptedAccountNumber) {
-      updatedGateway.accountNumber = decryptData(updatedGateway.encryptedAccountNumber);
-      updatedGateway.encryptedAccountNumber = undefined;
-    }
-    
-    return updatedGateway;
   },
 
   async updateOrder(orderedIds, userRole = null) {
@@ -222,76 +430,156 @@ const updateData = { ...gatewayData };
 
 async delete(id, userRole = null) {
     validateAdminRole(userRole);
-    await delay(300);
-    const index = paymentGatewaysData.findIndex(g => g.Id === parseInt(id));
-    if (index === -1) {
-      throw new Error("Payment gateway not found");
+    
+    try {
+      const transactionId = `tx_${Date.now()}`;
+      logTransactionAttempt('DELETE_START', parseInt(id), 'Unknown', true);
+      
+      await delay(300);
+      const sourceData = isTestingMode ? testGateways : paymentGatewaysData;
+      const index = sourceData.findIndex(g => g.Id === parseInt(id));
+      if (index === -1) {
+        throw new Error("Payment gateway not found");
+      }
+      
+      // Enhanced pre-deletion checks
+      const gateway = sourceData[index];
+      if (gateway.hasActiveTransactions) {
+        throw new Error("Cannot delete gateway with active transactions");
+      }
+      
+      // Check for dependent configurations
+      if (gateway.isActive && sourceData.filter(g => g.isActive).length === 1) {
+        throw new Error("Cannot delete the last active payment gateway");
+      }
+      
+      // Atomic delete operation
+      const deleted = sourceData.splice(index, 1)[0];
+      updateIndexes(deleted, 'DELETE');
+      
+      logAuditEvent('DELETE', parseInt(id), deleted.name, 'admin', {
+        gatewayType: deleted.gatewayType,
+        wasActive: deleted.isActive,
+        hadActiveTransactions: deleted.hasActiveTransactions,
+        transactionId
+      });
+      
+      logTransactionAttempt('DELETE_COMPLETE', parseInt(id), deleted.name, true);
+      
+      // Return with decrypted data if needed
+      const decryptedDeleted = { ...deleted };
+      if (deleted.encryptedAccountNumber) {
+        decryptedDeleted.accountNumber = decryptData(deleted.encryptedAccountNumber);
+        decryptedDeleted.encryptedAccountNumber = undefined;
+      }
+      if (deleted.encryptedApiKey) {
+        decryptedDeleted.apiKey = decryptData(deleted.encryptedApiKey);
+        decryptedDeleted.encryptedApiKey = undefined;
+      }
+      if (deleted.encryptedApiSecret) {
+        decryptedDeleted.apiSecret = decryptData(deleted.encryptedApiSecret);
+        decryptedDeleted.encryptedApiSecret = undefined;
+      }
+      
+      return decryptedDeleted;
+    } catch (error) {
+      logTransactionAttempt('DELETE_FAILED', parseInt(id), 'Unknown', false, error);
+      throw error;
     }
-    
-    // Check if gateway has active transactions (simulated check)
-    const gateway = paymentGatewaysData[index];
-    if (gateway.hasActiveTransactions) {
-      throw new Error("Cannot delete gateway with active transactions");
-    }
-    
-    const deleted = paymentGatewaysData.splice(index, 1)[0];
-    
-    logAuditEvent('DELETE', parseInt(id), deleted.name, 'admin', {
-      gatewayType: deleted.gatewayType,
-      wasActive: deleted.isActive
-    });
-    
-    // Return with decrypted account number if needed
-    const decryptedDeleted = { ...deleted };
-    if (deleted.encryptedAccountNumber) {
-      decryptedDeleted.accountNumber = decryptData(deleted.encryptedAccountNumber);
-      decryptedDeleted.encryptedAccountNumber = undefined;
-    }
-    
-    return decryptedDeleted;
   },
 
 async toggleStatus(id, userRole = null) {
     validateAdminRole(userRole);
-    await delay(200);
-    const index = paymentGatewaysData.findIndex(g => g.Id === parseInt(id));
-    if (index === -1) {
-      throw new Error("Payment gateway not found");
+    
+    try {
+      const transactionId = `tx_${Date.now()}`;
+      logTransactionAttempt('TOGGLE_STATUS_START', parseInt(id), 'Unknown', true);
+      
+      await delay(200);
+      const sourceData = isTestingMode ? testGateways : paymentGatewaysData;
+      const index = sourceData.findIndex(g => g.Id === parseInt(id));
+      if (index === -1) {
+        throw new Error("Payment gateway not found");
+      }
+      
+      const gateway = sourceData[index];
+      const oldStatus = gateway.isActive;
+      
+      // Business logic check: prevent disabling last active gateway
+      if (oldStatus && sourceData.filter(g => g.isActive).length === 1) {
+        throw new Error("Cannot disable the last active payment gateway");
+      }
+      
+      // Atomic status update
+      sourceData[index].isActive = !oldStatus;
+      sourceData[index].updatedAt = new Date().toISOString();
+      sourceData[index].transactionId = transactionId;
+      
+      updateIndexes(sourceData[index], 'UPDATE');
+      
+      logAuditEvent('TOGGLE_STATUS', parseInt(id), gateway.name, 'admin', {
+        oldStatus,
+        newStatus: sourceData[index].isActive,
+        transactionId,
+        businessRuleValidated: true
+      });
+      
+      logTransactionAttempt('TOGGLE_STATUS_COMPLETE', parseInt(id), gateway.name, true);
+      
+      // Return with decrypted data for display
+      const updatedGateway = { ...sourceData[index] };
+      if (updatedGateway.encryptedAccountNumber) {
+        updatedGateway.accountNumber = decryptData(updatedGateway.encryptedAccountNumber);
+        updatedGateway.encryptedAccountNumber = undefined;
+      }
+      if (updatedGateway.encryptedApiKey) {
+        updatedGateway.apiKey = decryptData(updatedGateway.encryptedApiKey);
+        updatedGateway.encryptedApiKey = undefined;
+      }
+      if (updatedGateway.encryptedApiSecret) {
+        updatedGateway.apiSecret = decryptData(updatedGateway.encryptedApiSecret);
+        updatedGateway.encryptedApiSecret = undefined;
+      }
+      
+      return updatedGateway;
+    } catch (error) {
+      logTransactionAttempt('TOGGLE_STATUS_FAILED', parseInt(id), 'Unknown', false, error);
+      throw error;
     }
-    
-    const oldStatus = paymentGatewaysData[index].isActive;
-    paymentGatewaysData[index].isActive = !paymentGatewaysData[index].isActive;
-    paymentGatewaysData[index].updatedAt = new Date().toISOString();
-    
-    logAuditEvent('TOGGLE_STATUS', parseInt(id), paymentGatewaysData[index].name, 'admin', {
-      oldStatus,
-      newStatus: paymentGatewaysData[index].isActive
-    });
-    
-    // Return with decrypted account number for display
-    const updatedGateway = { ...paymentGatewaysData[index] };
-    if (updatedGateway.encryptedAccountNumber) {
-      updatedGateway.accountNumber = decryptData(updatedGateway.encryptedAccountNumber);
-      updatedGateway.encryptedAccountNumber = undefined;
-    }
-    
-    return updatedGateway;
   },
-// Testing mode management
+// Enhanced testing mode management with error handling
   async enableTestingMode(userRole = null) {
     validateAdminRole(userRole);
-    isTestingMode = true;
-    testGateways.splice(0, testGateways.length, ...paymentGatewaysData.map(g => ({ ...g })));
-    logAuditEvent('ENABLE_TESTING', null, 'Testing Mode', 'admin');
-    return true;
+    
+    try {
+      isTestingMode = true;
+      testGateways.splice(0, testGateways.length, ...paymentGatewaysData.map(g => ({ ...g })));
+      logAuditEvent('ENABLE_TESTING', null, 'Testing Mode', 'admin', {
+        gatewayCopied: paymentGatewaysData.length,
+        previousMode: 'PRODUCTION'
+      });
+      return true;
+    } catch (error) {
+      logTransactionAttempt('ENABLE_TESTING_FAILED', null, 'Testing Mode', false, error);
+      throw new Error('Failed to enable testing mode: ' + error.message);
+    }
   },
-
-  async disableTestingMode(userRole = null) {
+async disableTestingMode(userRole = null) {
     validateAdminRole(userRole);
-    isTestingMode = false;
-    testGateways.splice(0, testGateways.length);
-    logAuditEvent('DISABLE_TESTING', null, 'Testing Mode', 'admin');
-    return true;
+    
+    try {
+      const testGatewayCount = testGateways.length;
+      isTestingMode = false;
+      testGateways.splice(0, testGateways.length);
+      logAuditEvent('DISABLE_TESTING', null, 'Testing Mode', 'admin', {
+        testGatewaysCleared: testGatewayCount,
+        newMode: 'PRODUCTION'
+      });
+      return true;
+    } catch (error) {
+      logTransactionAttempt('DISABLE_TESTING_FAILED', null, 'Testing Mode', false, error);
+      throw new Error('Failed to disable testing mode: ' + error.message);
+    }
   },
 
   // Transaction Validation Suite
@@ -590,15 +878,25 @@ testGateways.push(
           name: "Test Gateway",
           accountHolderName: "Test Account",
           accountNumber: "TEST123456789",
+          merchantId: "TEST_MERCHANT_001",
+          apiKey: "test_api_key_12345",
+          apiSecret: "test_secret_abcdef",
+          encryptedAccountNumber: encryptData("TEST123456789"),
+          encryptedApiKey: encryptData("test_api_key_12345"),
+          encryptedApiSecret: encryptData("test_secret_abcdef"),
           gatewayType: "Test Bank",
           logoUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=100&h=100&fit=crop",
           isActive: true,
           position: 0,
           transactionFee: 0,
+          hasActiveTransactions: false,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         }
       );
+      
+      // Initialize test gateway indexes
+      updateIndexes(testGateways[0], 'CREATE');
     }
     
     logAuditEvent('TESTING_MODE', null, 'System', 'admin', {

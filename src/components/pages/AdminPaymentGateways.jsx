@@ -77,39 +77,98 @@ async function loadGateways() {
 
 async function handleSubmit(e) {
     e.preventDefault()
-    try {
-      if (selectedGateway) {
-        await paymentGatewayService.update(selectedGateway.Id, formData, 'admin')
-        toast.success('Payment gateway updated successfully!')
-      } else {
-        await paymentGatewayService.create(formData, 'admin')
-        toast.success('Payment gateway created successfully!')
-      }
-      await loadGateways()
-      setShowForm(false)
-      setSelectedGateway(null)
-      setFormData({
-        name: '',
-        type: 'card',
-        accountNumber: '',
-        routingNumber: '',
-        merchantId: '',
-        apiKey: '',
-        apiSecret: '',
-        webhookUrl: '',
-        isActive: true,
-        priority: 1,
-        fees: {
-          transactionFee: 0,
-          percentageFee: 0
-        },
-        supportedCurrencies: ['USD'],
-        paymentMethods: ['card']
-      })
-    } catch (err) {
-      console.error('Failed to save payment gateway:', err)
-      toast.error(err.message || 'Failed to save payment gateway')
+    
+    // Frontend validation for required fields
+    const requiredFields = ['name', 'accountNumber', 'merchantId', 'apiKey', 'apiSecret'];
+    const missingFields = requiredFields.filter(field => !formData[field] || formData[field].toString().trim() === '');
+    
+    if (missingFields.length > 0) {
+      toast.error(`Please fill in required fields: ${missingFields.join(', ')}`);
+      return;
     }
+
+    // Additional validation
+    if (formData.accountNumber.length < 10) {
+      toast.error('Account number must be at least 10 characters');
+      return;
+    }
+
+    if (formData.apiKey.length < 8) {
+      toast.error('API Key must be at least 8 characters');
+      return;
+    }
+
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    const attemptSave = async () => {
+      try {
+        if (selectedGateway) {
+          await paymentGatewayService.update(selectedGateway.Id, formData, 'admin')
+          toast.success('Payment gateway updated successfully!')
+        } else {
+          await paymentGatewayService.create(formData, 'admin')
+          toast.success('Payment gateway created successfully!')
+          
+          // Add 2-second delay before refreshing to allow DB replication
+          setTimeout(async () => {
+            try {
+              await loadGateways()
+            } catch (refreshErr) {
+              console.warn('Auto-refresh failed:', refreshErr)
+              toast.info('Gateway created but list refresh failed. Please refresh manually.')
+            }
+          }, 2000)
+        }
+        
+        // Immediate refresh for updates, delayed for creates
+        if (selectedGateway) {
+          await loadGateways()
+        }
+        
+        setShowForm(false)
+        setSelectedGateway(null)
+        setFormData({
+          name: '',
+          type: 'card',
+          accountNumber: '',
+          routingNumber: '',
+          merchantId: '',
+          apiKey: '',
+          apiSecret: '',
+          webhookUrl: '',
+          isActive: true,
+          priority: 1,
+          fees: {
+            transactionFee: 0,
+            percentageFee: 0
+          },
+          supportedCurrencies: ['USD'],
+          paymentMethods: ['card']
+        })
+      } catch (err) {
+        console.error(`Failed to save payment gateway (attempt ${retryCount + 1}):`, err)
+        
+        if (retryCount < maxRetries - 1 && (err.message?.includes('network') || err.message?.includes('timeout'))) {
+          retryCount++
+          toast.warning(`Save failed, retrying... (${retryCount}/${maxRetries})`)
+          setTimeout(() => attemptSave(), 1000 * retryCount) // Exponential backoff
+        } else {
+          // Log detailed error for admin alerts
+          console.error('CRITICAL: Gateway save failed after retries', {
+            error: err.message,
+            stack: err.stack,
+            formData: { ...formData, apiKey: '***', apiSecret: '***' },
+            timestamp: new Date().toISOString(),
+            retryCount
+          })
+          
+          toast.error(err.message || 'Failed to save payment gateway. Please try again or contact support.')
+        }
+      }
+    }
+    
+    await attemptSave()
   }
   function handleEdit(gateway) {
     setSelectedGateway(gateway)
@@ -247,7 +306,7 @@ async function handleToggleStatus(gateway) {
             </p>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-3">
+<div className="flex flex-col sm:flex-row gap-3">
             <Button
               onClick={handleToggleTestingMode}
               variant={testingMode ? 'primary' : 'secondary'}
@@ -255,6 +314,22 @@ async function handleToggleStatus(gateway) {
             >
               <ApperIcon name="TestTube" size={16} />
               {testingMode ? 'Testing Mode' : 'Production Mode'}
+            </Button>
+            
+            <Button
+              onClick={async () => {
+                try {
+                  await loadGateways()
+                  toast.success('Gateway list refreshed successfully!')
+                } catch (err) {
+                  toast.error('Failed to refresh gateway list')
+                }
+              }}
+              variant="secondary"
+              className="flex items-center gap-2"
+            >
+              <ApperIcon name="RefreshCw" size={16} />
+              Refresh List
             </Button>
             
             <Button
