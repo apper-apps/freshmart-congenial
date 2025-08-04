@@ -1,0 +1,58 @@
+[
+  {
+    "Id": 1,
+    "productId": 1,
+    "productName": "Organic Bananas",
+    "productImage": "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=300&h=200&fit=crop",
+    "frequency": "weekly",
+    "status": "active",
+    "nextDelivery": "2024-01-15T10:00:00Z",
+    "price": 4.99,
+    "quantity": 2,
+    "createdAt": "2023-12-01T10:00:00Z",
+    "skippedDates": ["2024-01-08T10:00:00Z"],
+    "deliveryDay": "monday"
+  },
+  {
+    "Id": 2,
+    "productId": 5,
+    "productName": "Fresh Milk - Organic",
+    "productImage": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=300&h=200&fit=crop",
+    "frequency": "bi-weekly",
+    "status": "active",
+    "nextDelivery": "2024-01-18T14:00:00Z",
+    "price": 6.49,
+    "quantity": 1,
+    "createdAt": "2023-11-15T10:00:00Z",
+    "skippedDates": [],
+    "deliveryDay": "thursday"
+  },
+  {
+    "Id": 3,
+    "productId": 12,
+    "productName": "Artisan Bread Loaf",
+    "productImage": "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=300&h=200&fit=crop",
+    "frequency": "weekly",
+    "status": "paused",
+    "nextDelivery": "2024-01-22T09:00:00Z",
+    "price": 8.99,
+    "quantity": 1,
+    "createdAt": "2023-10-20T10:00:00Z",
+    "skippedDates": ["2024-01-01T09:00:00Z", "2024-01-08T09:00:00Z"],
+    "deliveryDay": "monday"
+  },
+  {
+    "Id": 4,
+    "productId": 8,
+    "productName": "Premium Coffee Beans",
+    "productImage": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=300&h=200&fit=crop",
+    "frequency": "monthly",
+    "status": "active",
+    "nextDelivery": "2024-02-01T11:00:00Z",
+    "price": 24.99,
+    "quantity": 1,
+    "createdAt": "2023-09-01T10:00:00Z",
+    "skippedDates": [],
+    "deliveryDay": "thursday"
+  }
+]
