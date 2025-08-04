@@ -1,52 +1,278 @@
-import { toast } from 'react-toastify';
-// Offline service for mobile PWA functionality
-const CACHE_NAME = 'freshmart-pro-v1';
-const OFFLINE_QUEUE_KEY = 'offline-queue';
-const SYNC_QUEUE_KEY = 'sync-queue';
+import { toast } from "react-toastify";
 
+// Constants
+const OFFLINE_QUEUE_KEY = 'freshmart-offline-queue';
+
+// Offline Service - Handles PWA functionality and service worker management
 class OfflineService {
   constructor() {
     this.isOnline = navigator.onLine;
-    this.setupEventListeners();
-    this.initializeCache();
+    this.serviceWorkerRegistration = null;
+    this.pendingRequests = [];
+    this.syncQueue = [];
+    this.deferredPrompt = null;
+    
+    this.init();
   }
 
-  setupEventListeners() {
-    window.addEventListener('online', () => {
-      this.isOnline = true;
-      this.syncOfflineData();
-      this.showConnectivityToast('Connected', 'success');
+  async init() {
+    // Listen for online/offline events
+    window.addEventListener('online', this.handleOnline.bind(this));
+    window.addEventListener('offline', this.handleOffline.bind(this));
+    
+    // Listen for PWA install prompt
+    window.addEventListener('beforeinstallprompt', (event) => {
+      event.preventDefault();
+      this.deferredPrompt = event;
     });
-
-    window.addEventListener('offline', () => {
-      this.isOnline = false;
-      this.showConnectivityToast('Working offline', 'info');
-    });
-  }
-
-  showConnectivityToast(message, type) {
-if (typeof toast !== 'undefined') {
-      toast[type](message, {
-        position: 'bottom-center',
-        autoClose: 3000,
-        hideProgressBar: true
-      });
+    
+    // Initialize service worker
+    await this.registerServiceWorker();
+    
+    // Setup background sync if supported
+    if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+      this.setupBackgroundSync();
     }
   }
 
-  async initializeCache() {
-    if ('serviceWorker' in navigator) {
-      try {
-        const registration = await navigator.serviceWorker.register('/sw.js');
-        console.log('Service Worker registered:', registration);
-      } catch (error) {
-        console.error('Service Worker registration failed:', error);
+  async registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) {
+      console.log('Service Worker not supported');
+      return false;
+    }
+
+    try {
+      console.log('Registering Service Worker...');
+      
+      // Register with explicit scope and proper error handling
+      const registration = await navigator.serviceWorker.register('/sw.js', {
+        scope: '/',
+        type: 'classic' // Explicitly set type to avoid MIME issues
+      });
+
+      this.serviceWorkerRegistration = registration;
+      
+      console.log('Service Worker registered successfully:', registration.scope);
+      
+      // Handle service worker updates
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New version available
+              this.showUpdateNotification();
+            }
+          });
+        }
+      });
+
+      // Listen for messages from service worker
+      navigator.serviceWorker.addEventListener('message', this.handleServiceWorkerMessage.bind(this));
+      
+      return true;
+    } catch (error) {
+      console.error('Service Worker registration failed:', error);
+      
+      // Check for specific MIME type error
+      if (error.message.includes('MIME type') || error.message.includes('text/html')) {
+        console.error('Service Worker file not found or served with wrong MIME type');
+        toast.error('App offline features unavailable. Please check your connection.');
+      } else if (error.name === 'SecurityError') {
+        console.error('Service Worker blocked by security policy');
+        toast.warning('Offline features disabled due to security settings');
+      } else {
+        toast.error('Failed to enable offline features');
+      }
+      
+      return false;
+    }
+  }
+
+  handleServiceWorkerMessage(event) {
+    const { data } = event;
+    
+    if (data && data.type) {
+      switch (data.type) {
+        case 'CACHE_UPDATED':
+          console.log('Cache updated:', data.url);
+          break;
+        case 'OFFLINE_FALLBACK':
+          toast.info('Loading from offline cache');
+          break;
+        case 'SYNC_COMPLETE':
+          toast.success('Data synced successfully');
+          break;
       }
     }
   }
 
-  // Cache essential data for offline access
-  async cacheData(key, data) {
+  showUpdateNotification() {
+    toast.info(
+      'New version available! Refresh to update.',
+      {
+        autoClose: false,
+        onClick: () => {
+          if (this.serviceWorkerRegistration?.waiting) {
+            this.serviceWorkerRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            window.location.reload();
+          }
+        }
+      }
+    );
+  }
+
+  handleOnline() {
+    this.isOnline = true;
+    console.log('App is online');
+    toast.success('Connection restored!', { autoClose: 3000 });
+    
+    // Process pending requests
+    this.processPendingRequests();
+    
+    // Sync offline data
+    this.syncOfflineData();
+    
+    // Trigger background sync
+    this.requestBackgroundSync('order-sync');
+    
+    // Update UI
+    document.body.classList.remove('offline-mode');
+    this.removeOfflineBadge();
+  }
+
+  handleOffline() {
+    this.isOnline = false;
+    console.log('App is offline');
+    toast.warning('You are offline. Some features may be limited.', { autoClose: 5000 });
+    
+    // Update UI
+    document.body.classList.add('offline-mode');
+    this.showOfflineBadge();
+  }
+
+  showOfflineBadge() {
+    const existingBadge = document.querySelector('.offline-badge');
+    if (existingBadge) return;
+    
+    const badge = document.createElement('div');
+    badge.className = 'offline-badge';
+    badge.textContent = 'Offline Mode';
+    badge.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #f59e0b;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 0 0 8px 8px;
+      font-size: 14px;
+      z-index: 9999;
+    `;
+    document.body.appendChild(badge);
+  }
+
+  removeOfflineBadge() {
+    const badge = document.querySelector('.offline-badge');
+    if (badge) {
+      badge.remove();
+    }
+  }
+
+  showConnectivityToast(message, type = 'info') {
+    toast[type](message, { autoClose: 3000 });
+  }
+
+  // Queue requests when offline
+  async queueRequest(request, options = {}) {
+    if (this.isOnline) {
+      try {
+        return await fetch(request, options);
+      } catch (error) {
+        if (!navigator.onLine) {
+          this.handleOffline();
+        }
+        throw error;
+      }
+    }
+    
+    // Store for later processing
+    this.pendingRequests.push({ request, options, timestamp: Date.now() });
+    
+    // Store in localStorage for persistence
+    await this.storePendingRequest({ request, options });
+    
+    toast.info('Request queued for when connection is restored');
+    
+    return new Response(
+      JSON.stringify({ 
+        queued: true, 
+        message: 'Request will be processed when online' 
+      }),
+      { 
+        status: 202,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+  }
+
+  async processPendingRequests() {
+    if (this.pendingRequests.length === 0) return;
+    
+    console.log(`Processing ${this.pendingRequests.length} pending requests`);
+    
+    const requests = [...this.pendingRequests];
+    this.pendingRequests = [];
+    
+    for (const { request, options } of requests) {
+      try {
+        await fetch(request, options);
+        console.log('Processed pending request:', request.url || request);
+      } catch (error) {
+        console.error('Failed to process pending request:', error);
+        // Re-queue if still failing
+        this.pendingRequests.push({ request, options, timestamp: Date.now() });
+      }
+    }
+  }
+
+  async storePendingRequest(requestData) {
+    try {
+      // Simple localStorage fallback for demo
+      const stored = localStorage.getItem('freshmart-pending-requests') || '[]';
+      const requests = JSON.parse(stored);
+      requests.push(requestData);
+      localStorage.setItem('freshmart-pending-requests', JSON.stringify(requests));
+    } catch (error) {
+      console.error('Failed to store pending request:', error);
+    }
+  }
+
+  setupBackgroundSync() {
+    if (!this.serviceWorkerRegistration) return;
+    
+    console.log('Background sync available');
+  }
+
+  async requestBackgroundSync(tag) {
+    if (!this.serviceWorkerRegistration || !('sync' in window.ServiceWorkerRegistration.prototype)) {
+      return false;
+    }
+    
+    try {
+      await this.serviceWorkerRegistration.sync.register(tag);
+      console.log('Background sync registered:', tag);
+      return true;
+    } catch (error) {
+      console.error('Background sync registration failed:', error);
+      return false;
+    }
+  }
+
+  // Cache data locally
+  cacheData(key, data) {
     try {
       localStorage.setItem(`cache_${key}`, JSON.stringify({
         data,
@@ -236,7 +462,53 @@ if (typeof toast !== 'undefined') {
       this.deferredPrompt = null;
     }
   }
+
+  // Cache management
+  async clearCache(cacheName) {
+    if (this.serviceWorkerRegistration) {
+      this.serviceWorkerRegistration.active?.postMessage({
+        type: 'CLEAR_CACHE',
+        cacheName
+      });
+    }
+  }
+
+  async cacheUrls(urls) {
+    if (this.serviceWorkerRegistration) {
+      this.serviceWorkerRegistration.active?.postMessage({
+        type: 'CACHE_URLS',
+        urls
+      });
+    }
+  }
+
+  // Utility methods
+  isOffline() {
+    return !this.isOnline;
+  }
+
+  getConnectionStatus() {
+    return {
+      online: this.isOnline,
+      serviceWorkerActive: !!this.serviceWorkerRegistration?.active,
+      pendingRequests: this.pendingRequests.length
+    };
+  }
 }
+
+// Create singleton instance
+const offlineService = new OfflineService();
+
+export default offlineService;
+
+// Export utility functions
+export const {
+  queueRequest,
+  isOffline,
+  getConnectionStatus,
+  clearCache,
+  cacheUrls
+} = offlineService;
 
 const offlineService = new OfflineService();
 
