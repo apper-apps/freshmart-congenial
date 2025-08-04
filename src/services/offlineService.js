@@ -1,4 +1,6 @@
 import { toast } from "react-toastify";
+import React from "react";
+import Error from "@/components/ui/Error";
 
 // Constants
 const OFFLINE_QUEUE_KEY = 'freshmart-offline-queue';
@@ -203,21 +205,25 @@ class OfflineService {
     
     // Store in localStorage for persistence
     await this.storePendingRequest({ request, options });
+toast.info('Request queued for when connection is restored');
     
-    toast.info('Request queued for when connection is restored');
+    // Create a Response-like object for offline queue response
+    const responseData = {
+      queued: true, 
+      message: 'Request will be processed when online'
+    };
     
-    return new Response(
-      JSON.stringify({ 
-        queued: true, 
-        message: 'Request will be processed when online' 
-      }),
-      { 
-        status: 202,
-        headers: { 'Content-Type': 'application/json' }
-      }
-    );
+    // Return a Promise that resolves to a response-like object
+    return Promise.resolve({
+      ok: true,
+      status: 202,
+      statusText: 'Accepted',
+      headers: new Headers({ 'Content-Type': 'application/json' }),
+      json: () => Promise.resolve(responseData),
+      text: () => Promise.resolve(JSON.stringify(responseData)),
+      clone: function() { return this; }
+    });
   }
-
   async processPendingRequests() {
     if (this.pendingRequests.length === 0) return;
     
@@ -509,7 +515,3 @@ export const {
   clearCache,
   cacheUrls
 } = offlineService;
-
-const offlineService = new OfflineService();
-
-export { offlineService };
