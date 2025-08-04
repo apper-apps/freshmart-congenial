@@ -2,8 +2,8 @@ import ordersData from "@/services/mockData/orders.json";
 import React from "react";
 import { notificationService } from "@/services/api/notificationService";
 import { paymentGatewayService } from "@/services/api/paymentGatewayService";
+import { offlineService } from "@/services/offlineService";
 import Error from "@/components/ui/Error";
-
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const orderService = {
@@ -138,8 +138,31 @@ async updateStatus(id, status) {
     return stats;
   },
 
-async updatePaymentVerification(id, verified, notes) {
+async updatePaymentVerification(id, verified, notes, proofImages = []) {
     await delay(300);
+    
+    // Handle offline scenarios
+    if (!offlineService.isOnline) {
+      await offlineService.queueOperation({
+        type: 'PUT',
+        endpoint: `/api/orders/${id}/verify`,
+        data: { verified, notes, proofImages }
+      });
+      
+      // Update local cache
+      const cachedOrders = offlineService.getCachedData('orders') || ordersData;
+      const index = cachedOrders.findIndex(o => o.Id === id);
+      if (index !== -1) {
+        cachedOrders[index].paymentVerified = verified;
+        cachedOrders[index].verificationNotes = notes;
+        cachedOrders[index].verificationDate = new Date().toISOString();
+        cachedOrders[index].proofImages = proofImages;
+        await offlineService.cacheData('orders', cachedOrders);
+      }
+      
+      return { success: true, offline: true };
+    }
+
     const index = ordersData.findIndex(o => o.Id === id);
     if (index === -1) {
       throw new Error("Order not found");
@@ -149,6 +172,7 @@ async updatePaymentVerification(id, verified, notes) {
     ordersData[index].paymentVerified = verified;
     ordersData[index].verificationNotes = notes;
     ordersData[index].verificationDate = new Date().toISOString();
+    ordersData[index].proofImages = proofImages;
     
     if (verified) {
       ordersData[index].status = 'verified';
@@ -168,11 +192,29 @@ async updatePaymentVerification(id, verified, notes) {
       }
     }
     
+    // Cache updated data
+    await offlineService.cacheData('orders', ordersData);
+    
     return { ...ordersData[index] };
 },
 
-  async validatePaymentTransaction(id, transactionData) {
+async validatePaymentTransaction(id, transactionData, capturedImages = []) {
     await delay(500);
+    
+    // Handle offline scenarios
+    if (!offlineService.isOnline) {
+      await offlineService.queueOperation({
+        type: 'POST',
+        endpoint: `/api/orders/${id}/validate`,
+        data: { transactionData, capturedImages }
+      });
+      
+      return {
+        offline: true,
+        message: 'Validation queued for when connection is restored'
+      };
+    }
+
     const index = ordersData.findIndex(o => o.Id === id);
     if (index === -1) {
       throw new Error("Order not found");
@@ -180,10 +222,29 @@ async updatePaymentVerification(id, verified, notes) {
 
     const order = ordersData[index];
     
+    // Process captured images for mobile optimization
+    const processedImages = [];
+    for (const imageFile of capturedImages) {
+      try {
+        const processedImage = await offlineService.processImageForMobile(imageFile);
+        processedImages.push({
+          data: processedImage,
+          timestamp: new Date().toISOString(),
+          metadata: {
+            originalSize: imageFile.size,
+            processedSize: processedImage.size,
+            type: processedImage.type
+          }
+        });
+      } catch (error) {
+        console.warn('Image processing failed:', error);
+      }
+    }
+    
     // Import payment gateway service for validation
     const { paymentGatewayService } = await import('@/services/api/paymentGatewayService');
     
-    // Prepare validation data
+    // Prepare validation data with mobile enhancements
     const validationPayload = {
       transactionId: transactionData.transactionId,
       orderId: id,
@@ -192,21 +253,28 @@ async updatePaymentVerification(id, verified, notes) {
       paymentTimestamp: transactionData.paymentTimestamp,
       orderTimestamp: order.createdAt,
       paidAmount: transactionData.paidAmount || order.total,
-      expectedAmount: order.total
+      expectedAmount: order.total,
+      capturedProof: processedImages,
+      deviceInfo: {
+        isMobile: offlineService.isMobileDevice(),
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent.substring(0, 100)
+      }
     };
 
     try {
       // Perform comprehensive validation
       const validationResult = await paymentGatewayService.validateTransaction(validationPayload, 'admin');
       
-      // Update order with validation results
+      // Update order with validation results and captured images
       ordersData[index] = {
         ...order,
         paymentValidation: validationResult,
         paymentVerified: validationResult.overallStatus === 'valid',
         verificationNotes: `Automated validation: ${validationResult.overallStatus}`,
         verificationDate: new Date().toISOString(),
-        status: validationResult.overallStatus === 'valid' ? 'verified' : 'pending'
+        status: validationResult.overallStatus === 'valid' ? 'verified' : 'pending',
+        capturedProof: processedImages
       };
 
       // Send notification if validation passed
@@ -223,9 +291,13 @@ async updatePaymentVerification(id, verified, notes) {
         }
       }
 
+      // Cache updated data
+      await offlineService.cacheData('orders', ordersData);
+
       return {
         order: { ...ordersData[index] },
-        validation: validationResult
+        validation: validationResult,
+        processedImages: processedImages.length
       };
 
     } catch (error) {
@@ -239,8 +311,12 @@ async updatePaymentVerification(id, verified, notes) {
         },
         paymentVerified: false,
         verificationNotes: `Validation error: ${error.message}`,
-        verificationDate: new Date().toISOString()
+        verificationDate: new Date().toISOString(),
+        capturedProof: processedImages
       };
+
+      // Cache error state
+      await offlineService.cacheData('orders', ordersData);
 
       throw new Error(`Transaction validation failed: ${error.message}`);
     }

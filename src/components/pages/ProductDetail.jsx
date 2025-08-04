@@ -115,12 +115,43 @@ const ProductDetail = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Product Image */}
-          <div className="space-y-4">
-            <div className="aspect-square rounded-xl overflow-hidden bg-white shadow-premium">
+<div className="space-y-4">
+            <div className="aspect-square rounded-xl overflow-hidden bg-white shadow-premium relative">
               <img
                 src={product.imageUrl}
                 alt={product.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover touch-manipulation"
+                onTouchStart={(e) => {
+                  if (e.touches.length === 2) {
+                    e.preventDefault(); // Prevent default zoom
+                  }
+                }}
+                onTouchMove={(e) => {
+                  if (e.touches.length === 2) {
+                    e.preventDefault(); // Custom zoom handling
+                  }
+                }}
+              />
+              
+              {/* Mobile zoom indicators */}
+              <div className="absolute bottom-4 right-4 bg-black/50 text-white px-2 py-1 rounded text-xs md:hidden">
+                Pinch to zoom
+              </div>
+              
+              {/* Touch-friendly image viewer for mobile */}
+              <div className="absolute inset-0 md:hidden" 
+                   onClick={() => {
+                     // Full-screen image viewer for mobile
+                     const viewer = document.createElement('div');
+                     viewer.className = 'fixed inset-0 bg-black z-50 flex items-center justify-center';
+                     viewer.innerHTML = `
+                       <img src="${product.imageUrl}" alt="${product.name}" 
+                            class="max-w-full max-h-full object-contain touch-manipulation" />
+                       <button class="absolute top-4 right-4 text-white text-2xl bg-black/50 rounded-full w-10 h-10 flex items-center justify-center"
+                               onclick="this.parentElement.remove()">×</button>
+                     `;
+                     document.body.appendChild(viewer);
+                   }}
               />
             </div>
           </div>

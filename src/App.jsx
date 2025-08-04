@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 import MonitoringDashboard from "@/components/pages/MonitoringDashboard";
 import "@/index.css";
 import Layout from "@/components/organisms/Layout";
@@ -13,12 +13,11 @@ import ProductDetail from "@/components/pages/ProductDetail";
 import OrderDashboard from "@/components/pages/OrderDashboard";
 import Cart from "@/components/pages/Cart";
 import AdminDashboard from "@/components/pages/AdminDashboard";
-
 function App() {
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-background">
-        <Routes>
+<Routes>
           {/* Admin Routes (without main layout) */}
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/payment-gateways" element={<AdminPaymentGateways />} />

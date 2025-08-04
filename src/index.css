@@ -45,8 +45,140 @@ body {
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Mobile optimizations */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  /* PWA viewport handling */
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-top: env(safe-area-inset-top);
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* Mobile-first touch optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Touch device styles */
+  button, [role="button"], input[type="submit"], input[type="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Remove hover effects on touch devices */
+  button:hover, [role="button"]:hover {
+    transform: none !important;
+  }
+  
+  /* Better touch feedback */
+  button:active, [role="button"]:active {
+    transform: scale(0.95) !important;
+    transition: transform 0.1s ease;
+  }
+}
+
+/* PWA safe area support */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.pt-safe {
+  padding-top: max(1rem, env(safe-area-inset-top));
+}
+
+/* Offline mode styles */
+.offline-mode {
+  filter: grayscale(0.3);
+  opacity: 0.9;
+}
+
+.offline-badge {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  z-index: 1000;
+}
+
+/* Camera capture styles */
+.camera-overlay {
+  position: fixed;
+  inset: 0;
+  background: black;
+  z-index: 999;
+}
+
+.camera-viewfinder {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  max-width: 400px;
+  aspect-ratio: 1;
+  border: 2px solid white;
+  border-radius: 12px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+}
+
+/* Image annotation styles */
+.annotation-canvas {
+  touch-action: none;
+  cursor: crosshair;
+}
+
+/* Swipe gesture indicators */
+@keyframes swipe-hint {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(10px); }
+}
+
+.swipe-hint {
+  animation: swipe-hint 2s ease-in-out infinite;
+}
+
+/* Loading states for offline content */
+.skeleton-loading {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .shadow-premium,
+  .shadow-premium-lg,
+  .shadow-premium-xl {
+    box-shadow: 0 0 0 2px currentColor;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .transform {
+    transform: none !important;
+  }
 }

@@ -4,7 +4,7 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  theme: {
+theme: {
     extend: {
       colors: {
         primary: {
@@ -58,6 +58,36 @@ export default {
         'premium': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
         'premium-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
         'premium-xl': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+      },
+      // Mobile-first breakpoints
+      screens: {
+        'xs': '475px',
+        'sm': '640px',
+        'md': '768px',
+        'lg': '1024px',
+        'xl': '1280px',
+        '2xl': '1536px',
+        // Touch device queries
+        'touch': { 'raw': '(hover: none) and (pointer: coarse)' },
+        'no-touch': { 'raw': '(hover: hover) and (pointer: fine)' },
+      },
+      // Touch-optimized spacing
+      spacing: {
+        'touch': '44px', // WCAG minimum touch target
+        'safe-top': 'env(safe-area-inset-top)',
+        'safe-bottom': 'env(safe-area-inset-bottom)',
+        'safe-left': 'env(safe-area-inset-left)',
+        'safe-right': 'env(safe-area-inset-right)',
+      },
+      // Mobile-optimized transitions
+      transitionDuration: {
+        '150': '150ms',
+        '250': '250ms',
+      },
+      // PWA theme colors
+      backgroundColor: {
+        'pwa-primary': '#2D7A3E',
+        'pwa-secondary': '#F97316',
       },
     },
   },

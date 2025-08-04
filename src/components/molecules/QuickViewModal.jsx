@@ -96,35 +96,77 @@ const QuickViewModal = ({ product, isOpen, onClose }) => {
 
         <div className="grid md:grid-cols-2 gap-8 p-6">
           {/* Image Gallery */}
-          <div className="space-y-4">
+<div className="space-y-4">
             <div className="relative aspect-square overflow-hidden rounded-xl bg-gray-100">
               <img
                 src={productImages[currentImageIndex]}
                 alt={product.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover touch-manipulation select-none"
+                onTouchStart={(e) => {
+                  if (e.touches.length === 1) {
+                    const touch = e.touches[0];
+                    this.touchStartX = touch.clientX;
+                    this.touchStartTime = Date.now();
+                  }
+                }}
+                onTouchEnd={(e) => {
+                  if (e.changedTouches.length === 1 && this.touchStartX !== undefined) {
+                    const touch = e.changedTouches[0];
+                    const touchEndX = touch.clientX;
+                    const touchDuration = Date.now() - this.touchStartTime;
+                    const touchDistance = Math.abs(touchEndX - this.touchStartX);
+                    
+                    // Swipe detection (min distance 50px, max duration 500ms)
+                    if (touchDistance > 50 && touchDuration < 500) {
+                      if (touchEndX > this.touchStartX) {
+                        prevImage(); // Swipe right = previous image
+                      } else {
+                        nextImage(); // Swipe left = next image
+                      }
+                      
+                      // Haptic feedback on supported devices
+                      if ('vibrate' in navigator) {
+                        navigator.vibrate(50);
+                      }
+                    }
+                  }
+                }}
+                draggable={false}
               />
               
-              {/* Navigation Arrows */}
+              {/* Touch-optimized Navigation Arrows */}
               {productImages.length > 1 && (
                 <>
                   <button
                     onClick={prevImage}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-lg transition-all"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-3 md:p-2 shadow-lg transition-all touch-manipulation"
+                    style={{ minWidth: '44px', minHeight: '44px' }} // WCAG touch target size
                   >
-                    <ApperIcon name="ChevronLeft" className="w-5 h-5" />
+                    <ApperIcon name="ChevronLeft" className="w-6 h-6 md:w-5 md:h-5" />
                   </button>
                   <button
                     onClick={nextImage}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-lg transition-all"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-3 md:p-2 shadow-lg transition-all touch-manipulation"
+                    style={{ minWidth: '44px', minHeight: '44px' }}
                   >
-                    <ApperIcon name="ChevronRight" className="w-5 h-5" />
+                    <ApperIcon name="ChevronRight" className="w-6 h-6 md:w-5 md:h-5" />
                   </button>
                 </>
               )}
 
+              {/* Mobile swipe indicator */}
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm md:hidden">
+                {productImages.length > 1 && (
+                  <span className="flex items-center gap-2">
+                    <ApperIcon name="SwipeHorizontal" className="w-4 h-4" />
+                    Swipe for more
+                  </span>
+                )}
+              </div>
+
               {/* Image Counter */}
               {productImages.length > 1 && (
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
                   {currentImageIndex + 1} / {productImages.length}
                 </div>
               )}
@@ -143,25 +185,92 @@ const QuickViewModal = ({ product, isOpen, onClose }) => {
                   </Badge>
                 )}
               </div>
+
+              {/* Annotation Tools for Mobile */}
+              <div className="absolute bottom-4 right-4 md:hidden">
+                <button
+                  onClick={() => {
+                    // Open annotation mode
+                    const annotationMode = document.createElement('div');
+                    annotationMode.className = 'fixed inset-0 bg-black z-50 flex flex-col';
+                    annotationMode.innerHTML = `
+                      <div class="flex items-center justify-between p-4 bg-gray-900 text-white">
+                        <span class="font-medium">Annotate Image</span>
+                        <button class="text-2xl" onclick="this.closest('.fixed').remove()">×</button>
+                      </div>
+                      <div class="flex-1 relative">
+                        <canvas id="annotation-canvas" class="w-full h-full touch-manipulation"></canvas>
+                        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-black/50 rounded-lg p-2">
+                          <button class="bg-red-500 w-8 h-8 rounded" onclick="setAnnotationColor('red')"></button>
+                          <button class="bg-blue-500 w-8 h-8 rounded" onclick="setAnnotationColor('blue')"></button>
+                          <button class="bg-green-500 w-8 h-8 rounded" onclick="setAnnotationColor('green')"></button>
+                          <button class="bg-white text-black px-3 py-1 rounded text-sm" onclick="clearAnnotations()">Clear</button>
+                        </div>
+                      </div>
+                    `;
+                    document.body.appendChild(annotationMode);
+                    
+                    // Initialize canvas for annotation
+                    const canvas = document.getElementById('annotation-canvas');
+                    const ctx = canvas.getContext('2d');
+                    let isDrawing = false;
+                    let currentColor = 'red';
+                    
+                    window.setAnnotationColor = (color) => currentColor = color;
+                    window.clearAnnotations = () => ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Touch drawing
+                    canvas.addEventListener('touchstart', (e) => {
+                      e.preventDefault();
+                      isDrawing = true;
+                      const rect = canvas.getBoundingClientRect();
+                      const touch = e.touches[0];
+                      ctx.beginPath();
+                      ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+                    });
+                    
+                    canvas.addEventListener('touchmove', (e) => {
+                      e.preventDefault();
+                      if (!isDrawing) return;
+                      const rect = canvas.getBoundingClientRect();
+                      const touch = e.touches[0];
+                      ctx.strokeStyle = currentColor;
+                      ctx.lineWidth = 3;
+                      ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+                      ctx.stroke();
+                    });
+                    
+                    canvas.addEventListener('touchend', () => {
+                      isDrawing = false;
+                    });
+                  }}
+                  className="bg-primary-500 text-white p-2 rounded-full shadow-lg"
+                  style={{ minWidth: '44px', minHeight: '44px' }}
+                >
+                  <ApperIcon name="Edit3" className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            {/* Thumbnail Navigation */}
+            {/* Touch-optimized Thumbnail Navigation */}
             {productImages.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto">
+              <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                 {productImages.map((image, index) => (
                   <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
-                    className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                    className={`flex-shrink-0 w-20 h-20 md:w-16 md:h-16 rounded-lg overflow-hidden border-2 transition-all touch-manipulation ${
                       currentImageIndex === index 
                         ? 'border-primary-500' 
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
+                    style={{ minWidth: '44px', minHeight: '44px' }}
                   >
                     <img
                       src={image}
                       alt={`${product.name} ${index + 1}`}
                       className="w-full h-full object-cover"
+                      draggable={false}
                     />
                   </button>
                 ))}

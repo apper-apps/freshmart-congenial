@@ -26,20 +26,53 @@ const Button = forwardRef(({
     xl: "px-8 py-4 text-lg"
   };
 
-  return (
+return (
     <button
       ref={ref}
       className={cn(
-        "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100",
+        // Base styles with mobile optimization
+        "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-300",
+        // Mobile-first touch optimization
+        "transform hover:scale-105 active:scale-95 md:hover:scale-105 md:active:scale-95",
+        // Focus and accessibility
+        "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2",
+        // Touch-friendly sizing
+        "min-h-[44px] md:min-h-0", // WCAG touch target size
+        "touch-manipulation select-none",
+        // Disabled states
+        "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:active:scale-100",
         variants[variant],
         sizes[size],
         className
       )}
       disabled={disabled || loading}
+      onClick={(e) => {
+        // Haptic feedback for mobile
+        if ('vibrate' in navigator && !disabled && !loading) {
+          navigator.vibrate(50);
+        }
+        if (props.onClick) {
+          props.onClick(e);
+        }
+      }}
+      onTouchStart={(e) => {
+        // Immediate visual feedback on touch
+        e.currentTarget.style.transform = 'scale(0.95)';
+        if (props.onTouchStart) {
+          props.onTouchStart(e);
+        }
+      }}
+      onTouchEnd={(e) => {
+        // Reset visual feedback
+        e.currentTarget.style.transform = '';
+        if (props.onTouchEnd) {
+          props.onTouchEnd(e);
+        }
+      }}
       {...props}
     >
       {loading ? (
-        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+        <div className="w-5 h-5 md:w-4 md:h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
       ) : null}
       {children}
     </button>
