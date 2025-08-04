@@ -43,11 +43,11 @@ function AdminPaymentGateways() {
     loadGateways()
   }, [])
 
-  async function loadGateways() {
+async function loadGateways() {
     try {
       setLoading(true)
       setError(null)
-      const data = await paymentGatewayService.getAllGateways()
+      const data = await paymentGatewayService.getAll('admin')
       setGateways(Array.isArray(data) ? data : [])
     } catch (err) {
       console.error('Failed to load payment gateways:', err)
@@ -57,7 +57,6 @@ function AdminPaymentGateways() {
       setLoading(false)
     }
   }
-
   function handleInputChange(field, value) {
     if (field.includes('.')) {
       const [parent, child] = field.split('.')
@@ -76,14 +75,14 @@ function AdminPaymentGateways() {
     }
   }
 
-  async function handleSubmit(e) {
+async function handleSubmit(e) {
     e.preventDefault()
     try {
       if (selectedGateway) {
-        await paymentGatewayService.updateGateway(selectedGateway.id, formData)
+        await paymentGatewayService.update(selectedGateway.Id, formData, 'admin')
         toast.success('Payment gateway updated successfully!')
       } else {
-        await paymentGatewayService.createGateway(formData)
+        await paymentGatewayService.create(formData, 'admin')
         toast.success('Payment gateway created successfully!')
       }
       await loadGateways()
@@ -112,7 +111,6 @@ function AdminPaymentGateways() {
       toast.error(err.message || 'Failed to save payment gateway')
     }
   }
-
   function handleEdit(gateway) {
     setSelectedGateway(gateway)
     setFormData({
@@ -136,13 +134,13 @@ function AdminPaymentGateways() {
     setShowForm(true)
   }
 
-  async function handleDelete(gateway) {
+async function handleDelete(gateway) {
     if (!window.confirm(`Are you sure you want to delete ${gateway.name}?`)) {
       return
     }
     
     try {
-      await paymentGatewayService.deleteGateway(gateway.id)
+      await paymentGatewayService.delete(gateway.Id, 'admin')
       toast.success('Payment gateway deleted successfully!')
       await loadGateways()
     } catch (err) {
@@ -150,7 +148,6 @@ function AdminPaymentGateways() {
       toast.error(err.message || 'Failed to delete payment gateway')
     }
   }
-
   async function handleDragEnd(result) {
     if (!result.destination) return
 
@@ -165,12 +162,8 @@ function AdminPaymentGateways() {
     }))
 
     setGateways(updatedItems)
-
-    try {
-      await paymentGatewayService.reorderGateways(updatedItems.map(item => ({
-        id: item.id,
-        priority: item.priority
-      })))
+try {
+      await paymentGatewayService.updateOrder(updatedItems.map(item => item.Id), 'admin')
       toast.success('Gateway order updated successfully!')
     } catch (err) {
       console.error('Failed to update gateway order:', err)
@@ -179,11 +172,10 @@ function AdminPaymentGateways() {
       await loadGateways()
     }
   }
-
-  async function handleToggleTestingMode() {
+async function handleToggleTestingMode() {
     try {
       const newMode = !testingMode
-      await paymentGatewayService.setTestingMode(newMode)
+      await paymentGatewayService.toggleTestingMode(newMode, 'admin')
       setTestingMode(newMode)
       toast.success(`Testing mode ${newMode ? 'enabled' : 'disabled'}`)
       await loadGateways()
@@ -192,19 +184,16 @@ function AdminPaymentGateways() {
       toast.error('Failed to toggle testing mode')
     }
   }
-
-  async function handleToggleStatus(gateway) {
+async function handleToggleStatus(gateway) {
     try {
-      const updatedGateway = { ...gateway, isActive: !gateway.isActive }
-      await paymentGatewayService.updateGateway(gateway.id, updatedGateway)
-      toast.success(`Gateway ${updatedGateway.isActive ? 'activated' : 'deactivated'}`)
+      await paymentGatewayService.toggleStatus(gateway.Id, 'admin')
+      toast.success(`Gateway ${!gateway.isActive ? 'activated' : 'deactivated'}`)
       await loadGateways()
     } catch (err) {
       console.error('Failed to toggle gateway status:', err)
       toast.error('Failed to update gateway status')
     }
   }
-
   function toggleAccountNumberVisibility(gatewayId) {
     setVisibleAccountNumbers(prev => ({
       ...prev,

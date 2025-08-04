@@ -617,7 +617,33 @@ testGateways.push(
   // Get audit logs (admin only)
   async getAuditLogs(userRole = null) {
     validateAdminRole(userRole);
-    await delay(200);
+await delay(200);
     return [...auditLog].reverse(); // Most recent first
+  },
+
+  // Alias methods for backward compatibility
+  async getAllGateways(userRole = null) {
+    return this.getAll(userRole);
+  },
+
+  async createGateway(gatewayData, userRole = null) {
+    return this.create(gatewayData, userRole);
+  },
+
+  async updateGateway(id, gatewayData, userRole = null) {
+    return this.update(id, gatewayData, userRole);
+  },
+
+  async deleteGateway(id, userRole = null) {
+    return this.delete(id, userRole);
+  },
+
+  async reorderGateways(orderedItems, userRole = null) {
+    const orderedIds = orderedItems.map(item => item.id || item.Id);
+    return this.updateOrder(orderedIds, userRole);
+  },
+
+  async setTestingMode(enabled, userRole = null) {
+    return this.toggleTestingMode(enabled, userRole);
   }
 };
