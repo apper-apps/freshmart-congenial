@@ -18,9 +18,12 @@ const decryptData = (encryptedData) => {
     return null;
   }
 };
-
 // Audit logging
 const auditLog = [];
+
+// Testing mode state
+let isTestingMode = false;
+const testGateways = [];
 
 const logAuditEvent = (action, gatewayId, gatewayName, userId = 'admin', details = {}) => {
   const logEntry = {
@@ -49,7 +52,8 @@ async getAll(userRole = null) {
     validateAdminRole(userRole);
     await delay(300);
     
-    const gateways = [...paymentGatewaysData].map(gateway => ({
+    const sourceData = isTestingMode ? testGateways : paymentGatewaysData;
+    const gateways = [...sourceData].map(gateway => ({
       ...gateway,
       accountNumber: gateway.encryptedAccountNumber ? 
         decryptData(gateway.encryptedAccountNumber) || gateway.accountNumber :
@@ -57,7 +61,23 @@ async getAll(userRole = null) {
     }));
     
     logAuditEvent('VIEW_ALL', null, 'All Gateways', 'admin');
-    return gateways.sort((a, b) => a.name.localeCompare(b.name));
+    return gateways.sort((a, b) => (a.position || 0) - (b.position || 0));
+  },
+
+  async getAllActive() {
+    await delay(200);
+    
+    const sourceData = isTestingMode ? testGateways : paymentGatewaysData;
+    const activeGateways = sourceData
+      .filter(gateway => gateway.isActive)
+      .map(gateway => ({
+        ...gateway,
+        accountNumber: gateway.encryptedAccountNumber ? 
+          decryptData(gateway.encryptedAccountNumber) || gateway.accountNumber :
+          gateway.accountNumber
+      }));
+    
+    return activeGateways.sort((a, b) => (a.position || 0) - (b.position || 0));
   },
 
 async getActive(userRole = null) {
@@ -98,8 +118,10 @@ async create(gatewayData, userRole = null) {
     validateAdminRole(userRole);
     await delay(500);
     
+    const sourceData = isTestingMode ? testGateways : paymentGatewaysData;
+    
     // Generate new ID
-    const maxId = Math.max(...paymentGatewaysData.map(g => g.Id), 0);
+    const maxId = Math.max(...sourceData.map(g => g.Id), 0);
     
     // Encrypt account number
     const encryptedAccountNumber = encryptData(gatewayData.accountNumber);
@@ -109,6 +131,7 @@ async create(gatewayData, userRole = null) {
       Id: maxId + 1,
       encryptedAccountNumber,
       accountNumber: undefined, // Remove plain text
+      position: sourceData.length,
       isActive: gatewayData.isActive !== undefined ? gatewayData.isActive : true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -132,12 +155,14 @@ async create(gatewayData, userRole = null) {
 async update(id, gatewayData, userRole = null) {
     validateAdminRole(userRole);
     await delay(300);
-    const index = paymentGatewaysData.findIndex(g => g.Id === parseInt(id));
+    
+    const sourceData = isTestingMode ? testGateways : paymentGatewaysData;
+    const index = sourceData.findIndex(g => g.Id === parseInt(id));
     if (index === -1) {
       throw new Error("Payment gateway not found");
     }
     
-    const oldGateway = { ...paymentGatewaysData[index] };
+    const oldGateway = { ...sourceData[index] };
     
     // Encrypt account number if provided
     const updateData = { ...gatewayData };
@@ -146,8 +171,8 @@ async update(id, gatewayData, userRole = null) {
       updateData.accountNumber = undefined; // Remove plain text
     }
     
-    paymentGatewaysData[index] = {
-      ...paymentGatewaysData[index],
+    sourceData[index] = {
+      ...sourceData[index],
       ...updateData,
       Id: parseInt(id), // Ensure ID doesn't change
       updatedAt: new Date().toISOString()
@@ -159,13 +184,34 @@ async update(id, gatewayData, userRole = null) {
     });
     
     // Return with decrypted account number for display
-    const updatedGateway = { ...paymentGatewaysData[index] };
+    const updatedGateway = { ...sourceData[index] };
     if (updatedGateway.encryptedAccountNumber) {
       updatedGateway.accountNumber = decryptData(updatedGateway.encryptedAccountNumber);
       updatedGateway.encryptedAccountNumber = undefined;
     }
     
     return updatedGateway;
+  },
+
+  async updateOrder(orderedIds, userRole = null) {
+    validateAdminRole(userRole);
+    await delay(300);
+    
+    const sourceData = isTestingMode ? testGateways : paymentGatewaysData;
+    
+    orderedIds.forEach((id, index) => {
+      const gateway = sourceData.find(g => g.Id === id);
+      if (gateway) {
+        gateway.position = index;
+        gateway.updatedAt = new Date().toISOString();
+      }
+    });
+    
+    logAuditEvent('REORDER', null, 'Gateway Order', 'admin', {
+      newOrder: orderedIds
+    });
+    
+    return true;
   },
 
 async delete(id, userRole = null) {
@@ -224,6 +270,43 @@ async toggleStatus(id, userRole = null) {
     }
     
     return updatedGateway;
+  },
+// Testing mode management
+  async toggleTestingMode(enabled, userRole = null) {
+    validateAdminRole(userRole);
+    await delay(200);
+    
+    isTestingMode = enabled;
+    
+    if (enabled && testGateways.length === 0) {
+      // Initialize test data
+      testGateways.push(
+        {
+          Id: 1,
+          name: "Test Gateway",
+          accountHolderName: "Test Account",
+          accountNumber: "TEST123456789",
+          gatewayType: "Test Bank",
+          logoUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=100&h=100&fit=crop",
+          isActive: true,
+          position: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      );
+    }
+    
+    logAuditEvent('TESTING_MODE', null, 'System', 'admin', {
+      enabled,
+      timestamp: new Date().toISOString()
+    });
+    
+    return isTestingMode;
+  },
+
+  async getTestingMode() {
+    await delay(100);
+    return isTestingMode;
   },
 
   // Get audit logs (admin only)

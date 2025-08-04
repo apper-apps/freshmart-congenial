@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { paymentGatewayService } from "@/services/api/paymentGatewayService";
 import ApperIcon from "@/components/ApperIcon";
 import Loading from "@/components/ui/Loading";
@@ -17,13 +18,14 @@ const AdminPaymentGateways = () => {
     name: 'Admin User'
   });
   
-  const [gateways, setGateways] = useState([]);
+const [gateways, setGateways] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingGateway, setEditingGateway] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAccountNumbers, setShowAccountNumbers] = useState({});
+  const [isTestingMode, setIsTestingMode] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     accountHolderName: "",
@@ -141,6 +143,40 @@ const handleDelete = async (gateway) => {
     }
   };
 
+  const handleDragEnd = async (result) => {
+    if (!result.destination || !isAdmin) return;
+
+    const items = Array.from(filteredGateways);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    try {
+      await paymentGatewayService.updateOrder(items.map(item => item.Id), currentUser.role);
+      toast.success("Gateway order updated successfully!");
+      loadGateways();
+    } catch (err) {
+      toast.error("Failed to update gateway order");
+      console.error("Failed to update order:", err);
+    }
+  };
+
+  const handleToggleTestingMode = async () => {
+    if (!isAdmin) {
+      toast.error("Access denied. Admin privileges required.");
+      return;
+    }
+
+    try {
+      await paymentGatewayService.toggleTestingMode(!isTestingMode);
+      setIsTestingMode(!isTestingMode);
+      toast.success(`Testing mode ${!isTestingMode ? 'enabled' : 'disabled'}`);
+      loadGateways();
+    } catch (err) {
+      toast.error("Failed to toggle testing mode");
+      console.error("Failed to toggle testing mode:", err);
+    }
+  };
+
 const handleToggleStatus = async (gateway) => {
     if (!isAdmin) {
       toast.error("Access denied. Admin privileges required.");
@@ -234,6 +270,37 @@ if (loading) return <Loading />;
               <ApperIcon name="Search" className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             </div>
           </div>
+{/* Testing Mode Toggle */}
+          {isAdmin && (
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+              <div className="flex items-center gap-3">
+                <ApperIcon name="TestTube" className="w-5 h-5 text-blue-600" />
+                <div>
+                  <h3 className="font-medium text-blue-900">Testing Mode</h3>
+                  <p className="text-sm text-blue-600">Use sandbox environment for payment testing</p>
+                </div>
+              </div>
+              <Button
+                variant={isTestingMode ? "primary" : "secondary"}
+                onClick={handleToggleTestingMode}
+                className="min-w-24"
+              >
+                {isTestingMode ? "Enabled" : "Disabled"}
+              </Button>
+            </div>
+          )}
+
+          {isTestingMode && (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center gap-2 text-yellow-800">
+                <ApperIcon name="AlertTriangle" className="w-4 h-4" />
+                <span className="font-medium">Testing Mode Active</span>
+              </div>
+              <p className="text-sm text-yellow-700 mt-1">
+                All payment operations are in sandbox mode. No real transactions will be processed.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Gateways Table */}
@@ -250,106 +317,147 @@ if (loading) return <Loading />;
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Gateway</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Account Details</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Type</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Status</th>
-                    <th className="px-6 py-4 text-right text-sm font-medium text-gray-900">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredGateways.map((gateway) => (
-                    <tr key={gateway.Id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={gateway.logoUrl || "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=50&h=50&fit=crop"}
-                            alt={gateway.name}
-                            className="w-10 h-10 rounded-lg object-cover"
-                          />
-                          <div>
-                            <p className="font-medium text-gray-900">{gateway.name}</p>
-                            <p className="text-sm text-gray-600">{gateway.accountHolderName}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm">{gateway.accountNumber}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => copyAccountNumber(gateway.accountNumber)}
-                            className="p-1"
-                          >
-                            <ApperIcon name="Copy" className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <Badge variant="secondary" size="sm">
-                          {gateway.gatewayType}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4">
-                        <button
-                          onClick={() => handleToggleStatus(gateway)}
-                          className="flex items-center gap-2"
-                        >
-                          <Badge variant={gateway.isActive ? "success" : "secondary"}>
-                            <ApperIcon 
-                              name={gateway.isActive ? "CheckCircle" : "XCircle"} 
-                              className="w-3 h-3 mr-1"
-                            />
-                            {gateway.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                        </button>
-                      </td>
-<td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <div className="flex items-center mr-4">
-                            <span className="text-sm text-gray-600 mr-2">
-                              {showAccountNumbers[gateway.Id] ? gateway.accountNumber : maskAccountNumber(gateway.accountNumber)}
-                            </span>
-                            {isAdmin && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => toggleAccountNumberVisibility(gateway.Id)}
-                                className="p-1"
-                              >
-                                <ApperIcon name={showAccountNumbers[gateway.Id] ? "EyeOff" : "Eye"} className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
-                          {isAdmin && (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEdit(gateway)}
-                              >
-                                <ApperIcon name="Edit2" className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDelete(gateway)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <ApperIcon name="Trash2" className="w-4 h-4" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </td>
+<DragDropContext onDragEnd={handleDragEnd}>
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      {isAdmin && <th className="px-4 py-4 text-left text-sm font-medium text-gray-900">Order</th>}
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Gateway</th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Account Details</th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Type</th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Status</th>
+                      <th className="px-6 py-4 text-right text-sm font-medium text-gray-900">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <Droppable droppableId="gateways" isDropDisabled={!isAdmin}>
+                    {(provided, snapshot) => (
+                      <tbody 
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
+                        className={`divide-y divide-gray-200 ${snapshot.isDraggingOver ? 'bg-blue-50' : ''}`}
+                      >
+                        {filteredGateways.map((gateway, index) => (
+                          <Draggable 
+                            key={gateway.Id} 
+                            draggableId={gateway.Id.toString()} 
+                            index={index}
+                            isDragDisabled={!isAdmin}
+                          >
+                            {(provided, snapshot) => (
+                              <tr
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className={`hover:bg-gray-50 ${snapshot.isDragging ? 'bg-blue-100 shadow-lg' : ''}`}
+                              >
+                                {isAdmin && (
+                                  <td className="px-4 py-4">
+                                    <div 
+                                      {...provided.dragHandleProps}
+                                      className="cursor-move p-1 rounded hover:bg-gray-200"
+                                    >
+                                      <ApperIcon name="GripVertical" className="w-4 h-4 text-gray-400" />
+                                    </div>
+                                  </td>
+                                )}
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center gap-3">
+                                    <img
+                                      src={gateway.logoUrl || "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=50&h=50&fit=crop"}
+                                      alt={gateway.name}
+                                      className="w-10 h-10 rounded-lg object-cover"
+                                    />
+                                    <div>
+                                      <div className="flex items-center gap-2">
+                                        <p className="font-medium text-gray-900">{gateway.name}</p>
+                                        {isTestingMode && (
+                                          <Badge variant="warning" size="sm">
+                                            <ApperIcon name="TestTube" className="w-3 h-3 mr-1" />
+                                            Test
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <p className="text-sm text-gray-600">{gateway.accountHolderName}</p>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-mono text-sm">
+                                      {showAccountNumbers[gateway.Id] ? gateway.accountNumber : maskAccountNumber(gateway.accountNumber)}
+                                    </span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => copyAccountNumber(gateway.accountNumber)}
+                                      className="p-1"
+                                    >
+                                      <ApperIcon name="Copy" className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <Badge variant="secondary" size="sm">
+                                    {gateway.gatewayType}
+                                  </Badge>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <button
+                                    onClick={() => handleToggleStatus(gateway)}
+                                    className="flex items-center gap-2"
+                                    disabled={!isAdmin}
+                                  >
+                                    <Badge variant={gateway.isActive ? "success" : "secondary"}>
+                                      <ApperIcon 
+                                        name={gateway.isActive ? "CheckCircle" : "XCircle"} 
+                                        className="w-3 h-3 mr-1"
+                                      />
+                                      {gateway.isActive ? "Active" : "Inactive"}
+                                    </Badge>
+                                  </button>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    {isAdmin && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => toggleAccountNumberVisibility(gateway.Id)}
+                                        className="p-1"
+                                      >
+                                        <ApperIcon name={showAccountNumbers[gateway.Id] ? "EyeOff" : "Eye"} className="w-4 h-4" />
+                                      </Button>
+                                    )}
+                                    {isAdmin && (
+                                      <>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleEdit(gateway)}
+                                        >
+                                          <ApperIcon name="Edit2" className="w-4 h-4" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleDelete(gateway)}
+                                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                        >
+                                          <ApperIcon name="Trash2" className="w-4 h-4" />
+                                        </Button>
+                                      </>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </tbody>
+                    )}
+                  </Droppable>
+                </table>
+              </DragDropContext>
             </div>
           )}
         </div>

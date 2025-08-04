@@ -6,13 +6,15 @@ import Input from "@/components/atoms/Input";
 import Badge from "@/components/atoms/Badge";
 import { cartService } from "@/services/api/cartService";
 import { orderService } from "@/services/api/orderService";
+import { paymentGatewayService } from "@/services/api/paymentGatewayService";
 import { toast } from "react-toastify";
-
 const Checkout = () => {
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [cartSummary, setCartSummary] = useState({});
   const [loading, setLoading] = useState(false);
+const [availableGateways, setAvailableGateways] = useState([]);
+  const [gatewaysLoading, setGatewaysLoading] = useState(true);
   
   const [deliveryInfo, setDeliveryInfo] = useState({
     fullName: "",
@@ -26,8 +28,7 @@ const Checkout = () => {
     instructions: ""
   });
 
-  const [paymentMethod, setPaymentMethod] = useState("card");
-
+  const [paymentMethod, setPaymentMethod] = useState("");
   const deliverySlots = [
     { value: "morning", label: "Morning (8:00 AM - 12:00 PM)", fee: 0 },
     { value: "afternoon", label: "Afternoon (12:00 PM - 6:00 PM)", fee: 0 },
@@ -35,16 +36,34 @@ const Checkout = () => {
     { value: "express", label: "Express (Within 2 hours)", fee: 50 }
   ];
 
-  useEffect(() => {
-    const items = cartService.getItems();
-    if (items.length === 0) {
-      navigate("/cart");
-      return;
-    }
-    
-    setCartItems(items);
-    setCartSummary(cartService.getCartSummary());
-  }, [navigate]);
+useEffect(() => {
+    const loadInitialData = async () => {
+      const items = cartService.getItems();
+      if (items.length === 0) {
+        navigate("/cart");
+        return;
+      }
+      
+      setCartItems(items);
+      setCartSummary(cartService.getCartSummary());
+
+      // Load available payment gateways
+      try {
+        const gateways = await paymentGatewayService.getAllActive();
+        setAvailableGateways(gateways);
+        if (gateways.length > 0 && !paymentMethod) {
+          setPaymentMethod(gateways[0].Id.toString());
+        }
+      } catch (error) {
+        console.error("Failed to load payment gateways:", error);
+        toast.error("Failed to load payment methods");
+      } finally {
+        setGatewaysLoading(false);
+      }
+    };
+
+    loadInitialData();
+  }, [navigate, paymentMethod]);
 
   const handleInputChange = (field, value) => {
     setDeliveryInfo(prev => ({ ...prev, [field]: value }));
@@ -217,43 +236,64 @@ const Checkout = () => {
                 </div>
               </div>
 
-              {/* Payment Method */}
+{/* Payment Method */}
               <div className="bg-white rounded-xl shadow-premium p-6">
                 <h2 className="font-display font-semibold text-xl text-gray-900 mb-6">
                   <ApperIcon name="CreditCard" className="w-5 h-5 inline mr-2" />
                   Payment Method
                 </h2>
 
-                <div className="space-y-3">
-                  {[
-                    { value: "card", label: "Credit/Debit Card", icon: "CreditCard" },
-                    { value: "upi", label: "UPI Payment", icon: "Smartphone" },
-                    { value: "cod", label: "Cash on Delivery", icon: "Banknote" }
-                  ].map((method) => (
-                    <label
-                      key={method.value}
-                      className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
-                        paymentMethod === method.value
-                          ? "border-primary-500 bg-primary-50"
-                          : "border-gray-200 bg-white hover:border-gray-300"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value={method.value}
-                        checked={paymentMethod === method.value}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                        className="sr-only"
-                      />
-                      <ApperIcon name={method.icon} className="w-5 h-5 text-gray-600 mr-3" />
-                      <span className="font-medium text-gray-900">{method.label}</span>
-                      {paymentMethod === method.value && (
-                        <ApperIcon name="CheckCircle" className="w-5 h-5 text-primary-500 ml-auto" />
-                      )}
-                    </label>
-                  ))}
-                </div>
+                {gatewaysLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+                    <span className="ml-3 text-gray-600">Loading payment methods...</span>
+                  </div>
+                ) : availableGateways.length === 0 ? (
+                  <div className="text-center py-8">
+                    <ApperIcon name="AlertCircle" className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-600">No payment methods available</p>
+                    <p className="text-sm text-gray-500 mt-1">Please contact support</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {availableGateways.map((gateway) => (
+                      <label
+                        key={gateway.Id}
+                        className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
+                          paymentMethod === gateway.Id.toString()
+                            ? "border-primary-500 bg-primary-50"
+                            : "border-gray-200 bg-white hover:border-gray-300"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value={gateway.Id.toString()}
+                          checked={paymentMethod === gateway.Id.toString()}
+                          onChange={(e) => setPaymentMethod(e.target.value)}
+                          className="sr-only"
+                        />
+                        <img
+                          src={gateway.logoUrl || "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=50&h=50&fit=crop"}
+                          alt={gateway.name}
+                          className="w-8 h-8 rounded object-cover mr-3"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-900">{gateway.name}</span>
+                            <Badge variant="secondary" size="sm">
+                              {gateway.gatewayType}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600">{gateway.accountHolderName}</p>
+                        </div>
+                        {paymentMethod === gateway.Id.toString() && (
+                          <ApperIcon name="CheckCircle" className="w-5 h-5 text-primary-500" />
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
