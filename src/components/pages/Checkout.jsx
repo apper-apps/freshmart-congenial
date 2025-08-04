@@ -104,9 +104,11 @@ useEffect(() => {
     }
   };
 
-  const selectedSlot = deliverySlots.find(slot => slot.value === deliveryInfo.deliverySlot);
-  const finalTotal = cartSummary.total + (selectedSlot?.fee || 0);
-
+const selectedSlot = deliverySlots.find(slot => slot.value === deliveryInfo.deliverySlot);
+  const selectedGateway = availableGateways.find(gateway => gateway.Id.toString() === paymentMethod);
+  const deliveryFee = selectedSlot?.fee || 0;
+  const gatewayFee = selectedGateway?.transactionFee || 0;
+  const finalTotal = cartSummary.total + deliveryFee + gatewayFee;
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -256,7 +258,7 @@ useEffect(() => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {availableGateways.map((gateway) => (
+{availableGateways.map((gateway) => (
                       <label
                         key={gateway.Id}
                         className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
@@ -284,6 +286,11 @@ useEffect(() => {
                             <Badge variant="secondary" size="sm">
                               {gateway.gatewayType}
                             </Badge>
+                            {gateway.transactionFee > 0 && (
+                              <Badge variant="warning" size="sm">
+                                +RS {gateway.transactionFee} fee
+                              </Badge>
+                            )}
                           </div>
                           <p className="text-sm text-gray-600">{gateway.accountHolderName}</p>
                         </div>
@@ -353,10 +360,16 @@ useEffect(() => {
                       <span className="font-medium">RS {selectedSlot.fee}</span>
                     </div>
                   )}
-
+{gatewayFee > 0 && (
+                    <div className="flex justify-between py-1">
+                      <span className="text-sm text-gray-600">Payment Gateway Fee</span>
+                      <span className="text-sm">RS {gatewayFee}</span>
+                    </div>
+                  )}
+                  
                   <div className="border-t border-gray-200 pt-3">
                     <div className="flex justify-between text-lg font-bold">
-<span>Total</span>
+                      <span>Total</span>
                       <span className="text-primary-600">RS {finalTotal}</span>
                     </div>
                   </div>

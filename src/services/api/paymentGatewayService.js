@@ -127,12 +127,13 @@ async create(gatewayData, userRole = null) {
     const encryptedAccountNumber = encryptData(gatewayData.accountNumber);
     
     const newGateway = {
-      ...gatewayData,
+...gatewayData,
       Id: maxId + 1,
       encryptedAccountNumber,
       accountNumber: undefined, // Remove plain text
       position: sourceData.length,
       isActive: gatewayData.isActive !== undefined ? gatewayData.isActive : true,
+      transactionFee: gatewayData.transactionFee || 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -165,10 +166,13 @@ async update(id, gatewayData, userRole = null) {
     const oldGateway = { ...sourceData[index] };
     
     // Encrypt account number if provided
-    const updateData = { ...gatewayData };
+const updateData = { ...gatewayData };
     if (gatewayData.accountNumber) {
       updateData.encryptedAccountNumber = encryptData(gatewayData.accountNumber);
       updateData.accountNumber = undefined; // Remove plain text
+    }
+    if (gatewayData.transactionFee !== undefined) {
+      updateData.transactionFee = gatewayData.transactionFee;
     }
     
     sourceData[index] = {
@@ -280,7 +284,7 @@ async toggleStatus(id, userRole = null) {
     
     if (enabled && testGateways.length === 0) {
       // Initialize test data
-      testGateways.push(
+testGateways.push(
         {
           Id: 1,
           name: "Test Gateway",
@@ -290,6 +294,7 @@ async toggleStatus(id, userRole = null) {
           logoUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=100&h=100&fit=crop",
           isActive: true,
           position: 0,
+          transactionFee: 0,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         }
