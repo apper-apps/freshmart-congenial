@@ -1,9 +1,11 @@
 import { toast } from "react-toastify";
+import React from "react";
 import productsData from "@/services/mockData/products.json";
 import dealsData from "@/services/mockData/deals.json";
 import paymentGatewaysData from "@/services/mockData/paymentGateways.json";
 import ordersData from "@/services/mockData/orders.json";
 import subscriptionsData from "@/services/mockData/subscriptions.json";
+import Error from "@/components/ui/Error";
 
 // Constants
 const OFFLINE_QUEUE_KEY = 'freshmart-offline-queue';
@@ -46,25 +48,36 @@ async registerServiceWorker() {
       return false;
     }
 
-    // Skip registration in development if service worker doesn't exist
-    if (import.meta.env.DEV) {
-      try {
-        const response = await fetch('/sw.js', { method: 'HEAD' });
-        if (!response.ok) {
-          console.log('Service Worker not available in development mode');
-          return false;
-        }
-      } catch (error) {
-        console.log('Service Worker not available in development mode');
-        return false;
-      }
+// Check if service worker is supported
+    if (!('serviceWorker' in navigator)) {
+      console.log('Service Worker not supported in this browser');
+      return false;
     }
 
     try {
-      console.log('Registering Service Worker...');
-      
-      // Use different paths for dev vs production
+      // Use different paths for dev and production
+      // In dev mode, vite-plugin-pwa generates /dev-sw.js?dev-sw
+      // In production, it generates /sw.js
       const swPath = import.meta.env.DEV ? '/dev-sw.js?dev-sw' : '/sw.js';
+      
+      // Check if service worker file exists before attempting registration
+      try {
+        const response = await fetch(swPath, { method: 'HEAD' });
+        if (!response.ok) {
+          console.log(`Service Worker file not found at ${swPath}. PWA features disabled.`);
+          return false;
+        }
+        
+        // Verify content type to prevent HTML 404 pages being registered as SW
+        const contentType = response.headers.get('content-type');
+        if (contentType && !contentType.includes('javascript')) {
+          console.log(`Service Worker has incorrect MIME type: ${contentType}. Expected JavaScript.`);
+          return false;
+        }
+      } catch (fetchError) {
+        console.log(`Service Worker not available: ${fetchError.message}`);
+        return false;
+      }
       
       // Register with explicit scope and proper error handling
       const registration = await navigator.serviceWorker.register(swPath, {
@@ -242,21 +255,25 @@ await this.storePendingRequest({ request, options });
     const responseData = {
       queued: true, 
       message: 'Request will be processed when online'
-    };
+};
     
     // Create Headers polyfill for environments where it's not available
-    const HeadersConstructor = typeof Headers !== 'undefined' ? Headers : function(init) {
-      this.headers = new Map();
-      if (init && typeof init === 'object') {
-        Object.entries(init).forEach(([key, value]) => {
-          this.headers.set(key.toLowerCase(), value);
-        });
-      }
-      this.get = (key) => this.headers.get(key?.toLowerCase());
-      this.set = (key, value) => this.headers.set(key?.toLowerCase(), value);
-      this.has = (key) => this.headers.has(key?.toLowerCase());
-      this.forEach = (callback) => this.headers.forEach(callback);
-    };
+    const HeadersConstructor = (typeof window !== 'undefined' && window.Headers) ? 
+      window.Headers : 
+      (typeof globalThis !== 'undefined' && globalThis.Headers) ? 
+        globalThis.Headers :
+        function(init) {
+          this.headers = new Map();
+          if (init && typeof init === 'object') {
+            Object.entries(init).forEach(([key, value]) => {
+              this.headers.set(key.toLowerCase(), value);
+            });
+          }
+          this.get = (key) => this.headers.get(key?.toLowerCase());
+          this.set = (key, value) => this.headers.set(key?.toLowerCase(), value);
+          this.has = (key) => this.headers.has(key?.toLowerCase());
+          this.forEach = (callback) => this.headers.forEach(callback);
+        };
     
     // Return a Promise that resolves to a response-like object
     return Promise.resolve({
