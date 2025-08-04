@@ -1,6 +1,9 @@
 import { toast } from "react-toastify";
-import React from "react";
-import Error from "@/components/ui/Error";
+import productsData from "@/services/mockData/products.json";
+import dealsData from "@/services/mockData/deals.json";
+import paymentGatewaysData from "@/services/mockData/paymentGateways.json";
+import ordersData from "@/services/mockData/orders.json";
+import subscriptionsData from "@/services/mockData/subscriptions.json";
 
 // Constants
 const OFFLINE_QUEUE_KEY = 'freshmart-offline-queue';
@@ -37,19 +40,37 @@ class OfflineService {
     }
   }
 
-  async registerServiceWorker() {
+async registerServiceWorker() {
     if (!('serviceWorker' in navigator)) {
       console.log('Service Worker not supported');
       return false;
     }
 
+    // Skip registration in development if service worker doesn't exist
+    if (import.meta.env.DEV) {
+      try {
+        const response = await fetch('/sw.js', { method: 'HEAD' });
+        if (!response.ok) {
+          console.log('Service Worker not available in development mode');
+          return false;
+        }
+      } catch (error) {
+        console.log('Service Worker not available in development mode');
+        return false;
+      }
+    }
+
     try {
       console.log('Registering Service Worker...');
       
+      // Use different paths for dev vs production
+      const swPath = import.meta.env.DEV ? '/dev-sw.js?dev-sw' : '/sw.js';
+      
       // Register with explicit scope and proper error handling
-      const registration = await navigator.serviceWorker.register('/sw.js', {
+      const registration = await navigator.serviceWorker.register(swPath, {
         scope: '/',
-        type: 'classic' // Explicitly set type to avoid MIME issues
+        type: 'module', // Use module type for better compatibility
+        updateViaCache: 'none' // Always check for updates
       });
 
       this.serviceWorkerRegistration = registration;
@@ -77,15 +98,25 @@ class OfflineService {
     } catch (error) {
       console.error('Service Worker registration failed:', error);
       
-      // Check for specific MIME type error
+      // Enhanced error handling with specific cases
       if (error.message.includes('MIME type') || error.message.includes('text/html')) {
         console.error('Service Worker file not found or served with wrong MIME type');
-        toast.error('App offline features unavailable. Please check your connection.');
+        if (!import.meta.env.DEV) {
+          toast.error('App offline features unavailable. Please refresh the page.');
+        }
       } else if (error.name === 'SecurityError') {
         console.error('Service Worker blocked by security policy');
         toast.warning('Offline features disabled due to security settings');
+      } else if (error.message.includes('404') || error.message.includes('Failed to fetch')) {
+        console.error('Service Worker file not found');
+        if (!import.meta.env.DEV) {
+          toast.error('Offline features unavailable. Please check your connection.');
+        }
       } else {
-        toast.error('Failed to enable offline features');
+        console.error('Unknown Service Worker error:', error);
+        if (!import.meta.env.DEV) {
+          toast.error('Failed to enable offline features');
+        }
       }
       
       return false;
@@ -204,8 +235,8 @@ class OfflineService {
     this.pendingRequests.push({ request, options, timestamp: Date.now() });
     
     // Store in localStorage for persistence
-    await this.storePendingRequest({ request, options });
-toast.info('Request queued for when connection is restored');
+await this.storePendingRequest({ request, options });
+    toast.info('Request queued for when connection is restored');
     
     // Create a Response-like object for offline queue response
     const responseData = {
@@ -213,12 +244,26 @@ toast.info('Request queued for when connection is restored');
       message: 'Request will be processed when online'
     };
     
+    // Create Headers polyfill for environments where it's not available
+    const HeadersConstructor = typeof Headers !== 'undefined' ? Headers : function(init) {
+      this.headers = new Map();
+      if (init && typeof init === 'object') {
+        Object.entries(init).forEach(([key, value]) => {
+          this.headers.set(key.toLowerCase(), value);
+        });
+      }
+      this.get = (key) => this.headers.get(key?.toLowerCase());
+      this.set = (key, value) => this.headers.set(key?.toLowerCase(), value);
+      this.has = (key) => this.headers.has(key?.toLowerCase());
+      this.forEach = (callback) => this.headers.forEach(callback);
+    };
+    
     // Return a Promise that resolves to a response-like object
     return Promise.resolve({
       ok: true,
       status: 202,
       statusText: 'Accepted',
-      headers: new Headers({ 'Content-Type': 'application/json' }),
+      headers: new HeadersConstructor({ 'Content-Type': 'application/json' }),
       json: () => Promise.resolve(responseData),
       text: () => Promise.resolve(JSON.stringify(responseData)),
       clone: function() { return this; }
