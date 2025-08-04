@@ -1,15 +1,18 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify';
-import Layout from '@/components/organisms/Layout';
-import Home from '@/components/pages/Home';
-import Categories from '@/components/pages/Categories';
-import ProductDetail from '@/components/pages/ProductDetail';
-import Cart from '@/components/pages/Cart';
-import Checkout from '@/components/pages/Checkout';
-import Account from '@/components/pages/Account';
-import AdminDashboard from '@/components/pages/AdminDashboard';
-import AdminPaymentGateways from '@/components/pages/AdminPaymentGateways';
+import React from "react";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import MonitoringDashboard from "@/components/pages/MonitoringDashboard";
+import "@/index.css";
+import Layout from "@/components/organisms/Layout";
+import AdminPaymentGateways from "@/components/pages/AdminPaymentGateways";
+import Account from "@/components/pages/Account";
+import Checkout from "@/components/pages/Checkout";
+import Home from "@/components/pages/Home";
+import Categories from "@/components/pages/Categories";
+import ProductDetail from "@/components/pages/ProductDetail";
+import OrderDashboard from "@/components/pages/OrderDashboard";
+import Cart from "@/components/pages/Cart";
+import AdminDashboard from "@/components/pages/AdminDashboard";
 
 function App() {
   return (
@@ -19,6 +22,8 @@ function App() {
           {/* Admin Routes (without main layout) */}
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/payment-gateways" element={<AdminPaymentGateways />} />
+          <Route path="/admin/orders" element={<OrderDashboard />} />
+          <Route path="/admin/monitoring" element={<MonitoringDashboard />} />
           
           {/* Main App Routes (with layout) */}
           <Route path="/*" element={

@@ -5,7 +5,7 @@ import Button from "@/components/atoms/Button";
 import Badge from "@/components/atoms/Badge";
 
 const AdminDashboard = () => {
-  const adminModules = [
+const adminModules = [
     {
       id: "payment-gateways",
       name: "Payment Gateways",
@@ -14,13 +14,22 @@ const AdminDashboard = () => {
       path: "/admin/payment-gateways",
       color: "primary"
     },
-{
+    {
       id: "orders",
       name: "Order Management",
       description: "View and manage customer orders",
       icon: "ShoppingBag",
       path: "/admin/orders",
       color: "secondary",
+      comingSoon: false
+    },
+    {
+      id: "monitoring",
+      name: "Real-time Monitoring",
+      description: "Monitor order verification, analytics, and alerts",
+      icon: "Activity",
+      path: "/admin/monitoring",
+      color: "info",
       comingSoon: false
     },
     {
