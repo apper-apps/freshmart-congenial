@@ -292,10 +292,8 @@ async updatePaymentVerification(id, verified, notes) {
       valid,
       invalid,
       errors,
-      validPercentage: total > 0 ? ((valid / total) * 100).toFixed(1) : 0,
+validPercentage: total > 0 ? ((valid / total) * 100).toFixed(1) : 0,
       pendingValidation: ordersData.filter(order => 
-        !order.paymentValidation && order.status === 'pending').length
-pendingValidation: ordersData.filter(order => 
         !order.paymentValidation && order.status === 'pending').length
     };
   },
