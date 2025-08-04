@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Header from "@/components/organisms/Header";
 import Footer from "@/components/organisms/Footer";
-import { offlineService } from "@/services/offlineService";
+import offlineService from "@/services/offlineService";
 
 const Layout = ({ children }) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
