@@ -220,10 +220,11 @@ if (loading) return <Loading />;
                 Add Gateway
               </Button>
             )}
+          </div>
 
           {/* Search */}
           <div className="flex items-center gap-4">
-            <div className="flex-1 max-w-md">
+            <div className="flex-1 max-w-md relative">
               <Input
                 placeholder="Search gateways..."
                 value={searchTerm}
