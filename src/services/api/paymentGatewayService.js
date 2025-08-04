@@ -161,20 +161,19 @@ export const paymentGatewayService = {
 async getAll(userRole = null) {
     validateAdminRole(userRole);
     
-    try {
+try {
       await delay(300);
       
       const sourceData = isTestingMode ? testGateways : paymentGatewaysData;
       const gateways = [...sourceData].map(gateway => ({
         ...gateway,
-      accountNumber: gateway.encryptedAccountNumber ? 
-        decryptData(gateway.encryptedAccountNumber) || gateway.accountNumber :
-        gateway.accountNumber
-    }));
-}));
+        accountNumber: gateway.encryptedAccountNumber ? 
+          decryptData(gateway.encryptedAccountNumber) || gateway.accountNumber :
+          gateway.accountNumber
+      }));
     
-    logAuditEvent('VIEW_ALL', null, 'All Gateways', 'admin');
-    return gateways.sort((a, b) => (a.position || 0) - (b.position || 0));
+      logAuditEvent('VIEW_ALL', null, 'All Gateways', 'admin');
+      return gateways.sort((a, b) => (a.position || 0) - (b.position || 0));
     } catch (error) {
       logTransactionAttempt('VIEW_ALL_FAILED', null, 'All Gateways', false, error);
       throw error;
