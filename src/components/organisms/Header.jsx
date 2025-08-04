@@ -12,11 +12,12 @@ const Header = () => {
   const cartItems = cartService.getItems();
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  const navItems = [
+const navItems = [
     { name: "Home", path: "/", icon: "Home" },
     { name: "Categories", path: "/categories", icon: "Grid3X3" },
     { name: "Deals", path: "/categories?deals=true", icon: "Tag" },
-    { name: "Account", path: "/account", icon: "User" }
+    { name: "Account", path: "/account", icon: "User" },
+    { name: "Admin", path: "/admin", icon: "Settings" }
   ];
 
   return (
