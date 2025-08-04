@@ -104,14 +104,14 @@ const ProductCard = ({ product }) => {
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold text-primary-600">
-                ₹{product.price}
+<span className="text-2xl font-bold text-primary-600">
+                RS {product.price}
               </span>
               <span className="text-sm text-gray-500">/{product.unit}</span>
             </div>
             {product.bulkPricing && product.bulkPricing.length > 0 && (
-              <p className="text-xs text-accent-600 font-medium">
-                Bulk: ₹{product.bulkPricing[0].price}/{product.bulkPricing[0].quantity}
+<p className="text-xs text-accent-600 font-medium">
+                Bulk: RS {product.bulkPricing[0].price}/{product.bulkPricing[0].quantity}
               </p>
             )}
           </div>

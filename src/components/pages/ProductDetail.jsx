@@ -143,14 +143,14 @@ const ProductDetail = () => {
             {/* Price */}
             <div className="space-y-2">
               <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-bold text-primary-600">
-                  ₹{currentPrice}
+<span className="text-4xl font-bold text-primary-600">
+                  RS {currentPrice}
                 </span>
                 <span className="text-lg text-gray-500">/{product.unit}</span>
               </div>
               {selectedQuantity > 1 && (
-                <div className="text-lg font-semibold text-gray-900">
-                  Total: ₹{totalPrice}
+<div className="text-lg font-semibold text-gray-900">
+                  Total: RS {totalPrice}
                 </div>
               )}
             </div>
@@ -171,8 +171,8 @@ const ProductDetail = () => {
                     }`}
                   >
                     <div className="text-left">
-                      <div className="font-semibold">Regular Price</div>
-                      <div className="text-primary-600">₹{product.price}/{product.unit}</div>
+<div className="font-semibold">Regular Price</div>
+                      <div className="text-primary-600">RS {product.price}/{product.unit}</div>
                     </div>
                   </button>
                   
@@ -187,8 +187,8 @@ const ProductDetail = () => {
                       }`}
                     >
                       <div className="text-left">
-                        <div className="font-semibold">{option.quantity}</div>
-                        <div className="text-primary-600">₹{option.price}/{product.unit}</div>
+<div className="font-semibold">{option.quantity}</div>
+                        <div className="text-primary-600">RS {option.price}/{product.unit}</div>
                         <Badge variant="deal" size="sm" className="mt-1">
                           Save {Math.round(((product.price - option.price) / product.price) * 100)}%
                         </Badge>
@@ -250,8 +250,8 @@ const ProductDetail = () => {
                 size="lg"
                 className="flex-1"
               >
-                <ApperIcon name="ShoppingCart" className="w-5 h-5 mr-2" />
-                Add to Cart - ₹{totalPrice}
+<ApperIcon name="ShoppingCart" className="w-5 h-5 mr-2" />
+                Add to Cart - RS {totalPrice}
               </Button>
               
               <Button

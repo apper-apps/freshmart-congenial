@@ -95,32 +95,32 @@ const Cart = () => {
 
               <div className="space-y-4">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">₹{cartSummary.subtotal}</span>
+<span className="text-gray-600">Subtotal</span>
+                  <span className="font-medium">RS {cartSummary.subtotal}</span>
                 </div>
 
                 {cartSummary.savings > 0 && (
                   <div className="flex justify-between text-accent-600">
-                    <span>Bulk Savings</span>
-                    <span className="font-medium">-₹{cartSummary.savings}</span>
+<span>Bulk Savings</span>
+                    <span className="font-medium">-RS {cartSummary.savings}</span>
                   </div>
                 )}
 
                 <div className="flex justify-between">
                   <span className="text-gray-600">Delivery Fee</span>
-                  <span className="font-medium">
+<span className="font-medium">
                     {cartSummary.deliveryFee === 0 ? (
                       <Badge variant="success" size="sm">FREE</Badge>
                     ) : (
-                      `₹${cartSummary.deliveryFee}`
+                      `RS ${cartSummary.deliveryFee}`
                     )}
                   </span>
                 </div>
 
                 <div className="border-t border-gray-200 pt-4">
                   <div className="flex justify-between text-lg font-bold">
-                    <span>Total</span>
-                    <span className="text-primary-600">₹{cartSummary.total}</span>
+<span>Total</span>
+                    <span className="text-primary-600">RS {cartSummary.total}</span>
                   </div>
                 </div>
 
@@ -128,8 +128,8 @@ const Cart = () => {
                   <div className="bg-secondary-50 border border-secondary-200 rounded-lg p-3">
                     <div className="flex items-center gap-2 text-secondary-700">
                       <ApperIcon name="Truck" className="w-4 h-4" />
-                      <span className="text-sm font-medium">
-                        Add ₹{500 - cartSummary.subtotal} more for FREE delivery!
+<span className="text-sm font-medium">
+                        Add RS {500 - cartSummary.subtotal} more for FREE delivery!
                       </span>
                     </div>
                     <div className="mt-2 bg-secondary-200 rounded-full h-2">
@@ -174,8 +174,8 @@ const Cart = () => {
                     <div key={index} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
                       <img src={item.image} alt={item.name} className="w-12 h-12 rounded-lg object-cover" />
                       <div className="flex-1">
-                        <p className="font-medium text-sm">{item.name}</p>
-                        <p className="text-primary-600 font-semibold text-sm">₹{item.price}</p>
+<p className="font-medium text-sm">{item.name}</p>
+                        <p className="text-primary-600 font-semibold text-sm">RS {item.price}</p>
                       </div>
                       <Button size="sm" variant="outline">
                         <ApperIcon name="Plus" className="w-3 h-3" />

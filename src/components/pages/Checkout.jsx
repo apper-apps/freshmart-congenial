@@ -276,8 +276,8 @@ const Checkout = () => {
                       <div className="flex-1">
                         <p className="font-medium text-sm">{item.product.name}</p>
                         <p className="text-xs text-gray-600">Qty: {item.quantity}</p>
-                      </div>
-                      <p className="font-semibold text-primary-600">₹{item.subtotal}</p>
+</div>
+                      <p className="font-semibold text-primary-600">RS {item.subtotal}</p>
                     </div>
                   ))}
                 </div>
@@ -285,8 +285,8 @@ const Checkout = () => {
                 {/* Totals */}
                 <div className="space-y-3 pt-4 border-t border-gray-200">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Subtotal</span>
-                    <span className="font-medium">₹{cartSummary.subtotal}</span>
+<span className="text-gray-600">Subtotal</span>
+                    <span className="font-medium">RS {cartSummary.subtotal}</span>
                   </div>
 
                   {cartSummary.savings > 0 && (
@@ -301,23 +301,23 @@ const Checkout = () => {
                     <span className="font-medium">
                       {cartSummary.deliveryFee === 0 ? (
                         <Badge variant="success" size="sm">FREE</Badge>
-                      ) : (
-                        `₹${cartSummary.deliveryFee}`
+) : (
+                        `RS ${cartSummary.deliveryFee}`
                       )}
                     </span>
                   </div>
 
                   {selectedSlot && selectedSlot.fee > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Time Slot Fee</span>
-                      <span className="font-medium">₹{selectedSlot.fee}</span>
+<span className="text-gray-600">Time Slot Fee</span>
+                      <span className="font-medium">RS {selectedSlot.fee}</span>
                     </div>
                   )}
 
                   <div className="border-t border-gray-200 pt-3">
                     <div className="flex justify-between text-lg font-bold">
-                      <span>Total</span>
-                      <span className="text-primary-600">₹{finalTotal}</span>
+<span>Total</span>
+                      <span className="text-primary-600">RS {finalTotal}</span>
                     </div>
                   </div>
                 </div>
