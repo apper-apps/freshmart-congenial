@@ -1,4 +1,4 @@
-import { toast } from 'react-hot-toast';
+import { toast } from 'react-toastify';
 // Offline service for mobile PWA functionality
 const CACHE_NAME = 'freshmart-pro-v1';
 const OFFLINE_QUEUE_KEY = 'offline-queue';
@@ -25,7 +25,7 @@ class OfflineService {
   }
 
   showConnectivityToast(message, type) {
-    if (typeof toast !== 'undefined') {
+if (typeof toast !== 'undefined') {
       toast[type](message, {
         position: 'bottom-center',
         autoClose: 3000,
