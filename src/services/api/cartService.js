@@ -93,7 +93,7 @@ export const cartService = {
       }
     });
 
-    // Free delivery over ₹500
+// Free delivery over Rs. 500
     const deliveryFee = subtotal >= 500 ? 0 : 40;
     const total = subtotal + deliveryFee;
 

@@ -1,0 +1,50 @@
+[
+  {
+    "Id": 1,
+    "name": "Habib Bank Limited (HBL)",
+    "accountHolderName": "FreshMart Pakistan",
+    "accountNumber": "1234567890123456",
+    "gatewayType": "Bank Account",
+    "logoUrl": "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=100&h=100&fit=crop",
+    "isActive": true,
+    "hasActiveTransactions": false,
+    "createdAt": "2024-01-15T10:00:00Z",
+    "updatedAt": "2024-01-15T10:00:00Z"
+  },
+  {
+    "Id": 2,
+    "name": "JazzCash",
+    "accountHolderName": "FreshMart Pakistan",
+    "accountNumber": "03001234567",
+    "gatewayType": "Mobile Wallet",
+    "logoUrl": "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=100&h=100&fit=crop",
+    "isActive": true,
+    "hasActiveTransactions": true,
+    "createdAt": "2024-01-20T14:30:00Z",
+    "updatedAt": "2024-01-20T14:30:00Z"
+  },
+  {
+    "Id": 3,
+    "name": "EasyPaisa",
+    "accountHolderName": "FreshMart Pakistan",
+    "accountNumber": "03009876543",
+    "gatewayType": "Mobile Wallet",
+    "logoUrl": "https://images.unsplash.com/photo-1556740749-887f6717d7e4?w=100&h=100&fit=crop",
+    "isActive": true,
+    "hasActiveTransactions": false,
+    "createdAt": "2024-01-25T09:15:00Z",
+    "updatedAt": "2024-01-25T09:15:00Z"
+  },
+  {
+    "Id": 4,
+    "name": "Allied Bank Limited (ABL)",
+    "accountHolderName": "FreshMart Pakistan",
+    "accountNumber": "9876543210987654",
+    "gatewayType": "Bank Account",
+    "logoUrl": "https://images.unsplash.com/photo-1541354329998-f4d9a9f9297f?w=100&h=100&fit=crop",
+    "isActive": false,
+    "hasActiveTransactions": false,
+    "createdAt": "2024-02-01T16:45:00Z",
+    "updatedAt": "2024-02-10T11:20:00Z"
+  }
+]

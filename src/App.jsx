@@ -1,30 +1,41 @@
-import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ToastContainer } from "react-toastify";
-import Layout from "@/components/organisms/Layout";
-import Home from "@/components/pages/Home";
-import Categories from "@/components/pages/Categories";
-import ProductDetail from "@/components/pages/ProductDetail";
-import Cart from "@/components/pages/Cart";
-import Checkout from "@/components/pages/Checkout";
-import Account from "@/components/pages/Account";
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import Layout from '@/components/organisms/Layout';
+import Home from '@/components/pages/Home';
+import Categories from '@/components/pages/Categories';
+import ProductDetail from '@/components/pages/ProductDetail';
+import Cart from '@/components/pages/Cart';
+import Checkout from '@/components/pages/Checkout';
+import Account from '@/components/pages/Account';
+import AdminDashboard from '@/components/pages/AdminDashboard';
+import AdminPaymentGateways from '@/components/pages/AdminPaymentGateways';
 
 function App() {
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-background">
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/categories" element={<Categories />} />
-            <Route path="/categories/:category" element={<Categories />} />
-            <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/account" element={<Account />} />
-          </Routes>
-        </Layout>
-        <ToastContainer
+        <Routes>
+          {/* Admin Routes (without main layout) */}
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/payment-gateways" element={<AdminPaymentGateways />} />
+          
+          {/* Main App Routes (with layout) */}
+          <Route path="/*" element={
+            <Layout>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/categories" element={<Categories />} />
+                <Route path="/categories/:category" element={<Categories />} />
+                <Route path="/product/:id" element={<ProductDetail />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/account" element={<Account />} />
+              </Routes>
+            </Layout>
+          } />
+        </Routes>
+        <ToastContainer 
           position="top-right"
           autoClose={3000}
           hideProgressBar={false}
