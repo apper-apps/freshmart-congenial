@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
-import ApperIcon from '@/components/ApperIcon';
-import Button from '@/components/atoms/Button';
-import Badge from '@/components/atoms/Badge';
-import Loading from '@/components/ui/Loading';
-import Error from '@/components/ui/Error';
-import { orderService } from '@/services/api/orderService';
-import OrderSummaryCards from '@/components/molecules/OrderSummaryCards';
-import OrderFilters from '@/components/molecules/OrderFilters';
-import OrderDetailsModal from '@/components/molecules/OrderDetailsModal';
+import React, { useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import { notificationService } from "@/services/api/notificationService";
+import { orderService } from "@/services/api/orderService";
+import ApperIcon from "@/components/ApperIcon";
+import OrderFilters from "@/components/molecules/OrderFilters";
+import OrderSummaryCards from "@/components/molecules/OrderSummaryCards";
+import OrderDetailsModal from "@/components/molecules/OrderDetailsModal";
+import Loading from "@/components/ui/Loading";
+import Error from "@/components/ui/Error";
+import Badge from "@/components/atoms/Badge";
+import Button from "@/components/atoms/Button";
 
 const OrderDashboard = () => {
   const [orders, setOrders] = useState([]);
@@ -17,6 +18,9 @@ const OrderDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [notificationHistory, setNotificationHistory] = useState([]);
+  const [notificationPreferences, setNotificationPreferences] = useState(null);
+  const [showNotificationPanel, setShowNotificationPanel] = useState(false);
   const [filters, setFilters] = useState({
     status: [],
     dateFrom: '',
@@ -35,15 +39,16 @@ const OrderDashboard = () => {
     shipped: { variant: 'accent', label: 'Shipped', icon: 'Truck' },
     delivered: { variant: 'success', label: 'Delivered', icon: 'CheckCircle2' },
     cancelled: { variant: 'error', label: 'Cancelled', icon: 'XCircle' }
-  };
+};
 
   useEffect(() => {
     loadData();
+    loadNotificationData();
   }, []);
 
   useEffect(() => {
     applyFilters();
-  }, [orders, filters]);
+}, [orders, filters]);
 
   const loadData = async () => {
     try {
@@ -63,6 +68,19 @@ const OrderDashboard = () => {
     }
   };
 
+  const loadNotificationData = async () => {
+    try {
+      const [history, preferences] = await Promise.all([
+        notificationService.getAllNotifications(),
+        notificationService.getPreferences()
+      ]);
+      setNotificationHistory(history);
+      setNotificationPreferences(preferences);
+    } catch (err) {
+      console.error('Failed to load notification data:', err);
+    }
+  };
+
   const applyFilters = async () => {
     try {
       const filtered = await orderService.getFiltered(filters);
@@ -70,7 +88,7 @@ const OrderDashboard = () => {
     } catch (err) {
       console.error('Filter error:', err);
       setFilteredOrders(orders);
-    }
+}
   };
 
   const handleStatusUpdate = async (orderId, newStatus) => {
@@ -86,9 +104,23 @@ const OrderDashboard = () => {
       const newStats = await orderService.getStatistics();
       setStatistics(newStats);
       
-      toast.success(`Order status updated to ${statusConfig[newStatus]?.label || newStatus}`);
+      // Refresh notification history
+      await loadNotificationData();
+      
+      const statusLabel = statusConfig[newStatus]?.label || newStatus;
+      toast.success(`Order status updated to ${statusLabel}. Customer notifications sent automatically.`);
     } catch (err) {
       toast.error('Failed to update order status');
+    }
+  };
+  
+  const handleNotificationPreferencesUpdate = async (preferences) => {
+    try {
+      await notificationService.updatePreferences(preferences);
+      setNotificationPreferences(preferences);
+      toast.success('Notification preferences updated successfully');
+    } catch (err) {
+      toast.error('Failed to update notification preferences');
     }
   };
 
@@ -173,7 +205,128 @@ const OrderDashboard = () => {
               minAmount: '',
               maxAmount: ''
             })}
-          />
+/>
+        </div>
+
+        {/* Notification Management Panel */}
+        <div className="bg-surface rounded-xl shadow-premium p-6 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-display font-semibold text-gray-900">
+              Notification Management
+            </h2>
+            <Button
+              onClick={() => setShowNotificationPanel(!showNotificationPanel)}
+              variant="outline"
+              size="sm"
+            >
+              <ApperIcon name="Bell" className="w-4 h-4 mr-2" />
+              {showNotificationPanel ? 'Hide' : 'Show'} Notifications
+            </Button>
+          </div>
+
+          {showNotificationPanel && (
+            <div className="space-y-6">
+              {/* Notification Preferences */}
+              {notificationPreferences && (
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 mb-4">Notification Settings</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <ApperIcon name="Mail" className="w-5 h-5 text-info" />
+                        <div>
+                          <p className="font-medium">Email Notifications</p>
+                          <p className="text-sm text-gray-600">Payment verification</p>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => handleNotificationPreferencesUpdate({
+                          ...notificationPreferences,
+                          email: { ...notificationPreferences.email, enabled: !notificationPreferences.email.enabled }
+                        })}
+                        variant={notificationPreferences.email.enabled ? "success" : "outline"}
+                        size="sm"
+                      >
+                        {notificationPreferences.email.enabled ? 'Enabled' : 'Disabled'}
+                      </Button>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <ApperIcon name="MessageCircle" className="w-5 h-5 text-success" />
+                        <div>
+                          <p className="font-medium">SMS Notifications</p>
+                          <p className="text-sm text-gray-600">Shipping updates</p>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => handleNotificationPreferencesUpdate({
+                          ...notificationPreferences,
+                          sms: { ...notificationPreferences.sms, enabled: !notificationPreferences.sms.enabled }
+                        })}
+                        variant={notificationPreferences.sms.enabled ? "success" : "outline"}
+                        size="sm"
+                      >
+                        {notificationPreferences.sms.enabled ? 'Enabled' : 'Disabled'}
+                      </Button>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <ApperIcon name="Smartphone" className="w-5 h-5 text-accent" />
+                        <div>
+                          <p className="font-medium">App Notifications</p>
+                          <p className="text-sm text-gray-600">Delivery confirmation</p>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => handleNotificationPreferencesUpdate({
+                          ...notificationPreferences,
+                          app: { ...notificationPreferences.app, enabled: !notificationPreferences.app.enabled }
+                        })}
+                        variant={notificationPreferences.app.enabled ? "success" : "outline"}
+                        size="sm"
+                      >
+                        {notificationPreferences.app.enabled ? 'Enabled' : 'Disabled'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Recent Notifications */}
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold text-gray-900 mb-4">Recent Notifications ({notificationHistory.length})</h3>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {notificationHistory.slice(0, 10).map((notification) => (
+                    <div key={notification.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <ApperIcon 
+                          name={notification.type === 'email' ? 'Mail' : notification.type === 'sms' ? 'MessageCircle' : 'Smartphone'} 
+                          className="w-4 h-4 text-gray-600" 
+                        />
+                        <div>
+                          <p className="text-sm font-medium">Order #{notification.orderId}</p>
+                          <p className="text-xs text-gray-600">{notification.type.toUpperCase()} to {notification.recipient}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant={notification.status === 'sent' ? 'success' : 'error'} size="sm">
+                          {notification.status}
+                        </Badge>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {new Date(notification.timestamp).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  {notificationHistory.length === 0 && (
+                    <p className="text-center text-gray-600 py-4">No notifications sent yet</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Orders List */}
@@ -182,17 +335,27 @@ const OrderDashboard = () => {
             <h2 className="text-xl font-display font-semibold text-gray-900">
               Orders ({filteredOrders.length})
             </h2>
-            <Button
-              onClick={loadData}
-              variant="outline"
-              size="sm"
-            >
-              <ApperIcon name="RefreshCw" className="w-4 h-4 mr-2" />
-              Refresh
-            </Button>
+            <div className="flex items-center space-x-3">
+              <Button
+                onClick={loadNotificationData}
+                variant="outline"
+                size="sm"
+              >
+                <ApperIcon name="Bell" className="w-4 h-4 mr-2" />
+                Sync Notifications
+              </Button>
+              <Button
+                onClick={loadData}
+                variant="outline"
+                size="sm"
+              >
+                <ApperIcon name="RefreshCw" className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
           </div>
 
-          {filteredOrders.length === 0 ? (
+{filteredOrders.length === 0 ? (
             <div className="text-center py-12">
               <ApperIcon name="ShoppingBag" className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No orders found</h3>
@@ -275,7 +438,7 @@ const OrderDashboard = () => {
               ))}
             </div>
           )}
-        </div>
+</div>
 
         {/* Order Details Modal */}
         {selectedOrder && (
@@ -284,6 +447,7 @@ const OrderDashboard = () => {
             onClose={() => setSelectedOrder(null)}
             onStatusUpdate={handleStatusUpdate}
             statusConfig={statusConfig}
+            notificationHistory={notificationHistory.filter(n => n.orderId === selectedOrder.Id)}
           />
         )}
       </div>

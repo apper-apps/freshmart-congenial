@@ -1,4 +1,5 @@
 import ordersData from "@/services/mockData/orders.json";
+import { notificationService } from "@/services/api/notificationService";
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -30,12 +31,14 @@ export const orderService = {
     return { ...newOrder };
   },
 
-  async updateStatus(id, status) {
+async updateStatus(id, status) {
     await delay(300);
     const index = ordersData.findIndex(o => o.Id === id);
     if (index === -1) {
       throw new Error("Order not found");
     }
+    
+    const oldStatus = ordersData[index].status;
     ordersData[index].status = status;
     ordersData[index].statusHistory = ordersData[index].statusHistory || [];
     ordersData[index].statusHistory.push({
@@ -43,6 +46,21 @@ export const orderService = {
       timestamp: new Date().toISOString(),
       updatedBy: "Admin"
     });
+
+    // Send automated notification for status changes
+    try {
+      if (status !== oldStatus && ['verified', 'shipped', 'delivered'].includes(status)) {
+        await notificationService.sendAutomatedNotification(
+          id, 
+          status, 
+          ordersData[index].deliveryInfo, 
+          ordersData[index]
+        );
+      }
+    } catch (notificationError) {
+      console.warn('Notification failed but order status updated:', notificationError.message);
+    }
+
     return { ...ordersData[index] };
   },
 
@@ -117,19 +135,34 @@ export const orderService = {
     return stats;
   },
 
-  async updatePaymentVerification(id, verified, notes) {
+async updatePaymentVerification(id, verified, notes) {
     await delay(300);
     const index = ordersData.findIndex(o => o.Id === id);
     if (index === -1) {
       throw new Error("Order not found");
     }
     
+    const wasUnverified = !ordersData[index].paymentVerified;
     ordersData[index].paymentVerified = verified;
     ordersData[index].verificationNotes = notes;
     ordersData[index].verificationDate = new Date().toISOString();
     
     if (verified) {
       ordersData[index].status = 'verified';
+      
+      // Send verification email notification
+      try {
+        if (wasUnverified) {
+          await notificationService.sendAutomatedNotification(
+            id,
+            'verified',
+            ordersData[index].deliveryInfo,
+            ordersData[index]
+          );
+        }
+      } catch (notificationError) {
+        console.warn('Verification notification failed:', notificationError.message);
+      }
     }
     
     return { ...ordersData[index] };
