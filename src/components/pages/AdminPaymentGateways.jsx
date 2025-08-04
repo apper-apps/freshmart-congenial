@@ -1,21 +1,29 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { paymentGatewayService } from "@/services/api/paymentGatewayService";
 import ApperIcon from "@/components/ApperIcon";
-import Button from "@/components/atoms/Button";
-import Input from "@/components/atoms/Input";
-import Badge from "@/components/atoms/Badge";
 import Loading from "@/components/ui/Loading";
 import Error from "@/components/ui/Error";
 import Empty from "@/components/ui/Empty";
-
+import Account from "@/components/pages/Account";
+import Badge from "@/components/atoms/Badge";
+import Input from "@/components/atoms/Input";
+import Button from "@/components/atoms/Button";
 const AdminPaymentGateways = () => {
+  // Simulated user context - in real app this would come from auth context
+  const [currentUser] = useState({
+    id: 'admin-001',
+    role: 'admin',
+    name: 'Admin User'
+  });
+  
   const [gateways, setGateways] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingGateway, setEditingGateway] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showAccountNumbers, setShowAccountNumbers] = useState({});
   const [formData, setFormData] = useState({
     name: "",
     accountHolderName: "",
@@ -24,6 +32,9 @@ const AdminPaymentGateways = () => {
     logoUrl: "",
     isActive: true
   });
+
+  // Check if user has admin role
+  const isAdmin = currentUser?.role === 'admin';
 
   const loadGateways = async () => {
     try {
@@ -50,8 +61,13 @@ const AdminPaymentGateways = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!isAdmin) {
+      toast.error("Access denied. Admin privileges required.");
+      return;
+    }
     
     if (!formData.name || !formData.accountHolderName || !formData.accountNumber) {
       toast.error("Please fill in all required fields");
@@ -60,10 +76,10 @@ const AdminPaymentGateways = () => {
 
     try {
       if (editingGateway) {
-        await paymentGatewayService.update(editingGateway.Id, formData);
+        await paymentGatewayService.update(editingGateway.Id, formData, currentUser.role);
         toast.success("Payment gateway updated successfully!");
       } else {
-        await paymentGatewayService.create(formData);
+        await paymentGatewayService.create(formData, currentUser.role);
         toast.success("Payment gateway added successfully!");
       }
       
@@ -79,7 +95,11 @@ const AdminPaymentGateways = () => {
       });
       loadGateways();
     } catch (err) {
-      toast.error(editingGateway ? "Failed to update gateway" : "Failed to add gateway");
+      if (err.message.includes("Access denied")) {
+        toast.error("Access denied. Admin privileges required.");
+      } else {
+        toast.error(editingGateway ? "Failed to update gateway" : "Failed to add gateway");
+      }
       console.error("Failed to save gateway:", err);
     }
   };
@@ -97,30 +117,60 @@ const AdminPaymentGateways = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (gateway) => {
+const handleDelete = async (gateway) => {
+    if (!isAdmin) {
+      toast.error("Access denied. Admin privileges required.");
+      return;
+    }
+    
     if (!window.confirm(`Are you sure you want to delete ${gateway.name}? This action cannot be undone.`)) {
       return;
     }
 
     try {
-      await paymentGatewayService.delete(gateway.Id);
+      await paymentGatewayService.delete(gateway.Id, currentUser.role);
       toast.success("Payment gateway deleted successfully!");
       loadGateways();
     } catch (err) {
-      toast.error(err.message || "Failed to delete gateway");
+      if (err.message.includes("Access denied")) {
+        toast.error("Access denied. Admin privileges required.");
+      } else {
+        toast.error(err.message || "Failed to delete gateway");
+      }
       console.error("Failed to delete gateway:", err);
     }
   };
 
-  const handleToggleStatus = async (gateway) => {
+const handleToggleStatus = async (gateway) => {
+    if (!isAdmin) {
+      toast.error("Access denied. Admin privileges required.");
+      return;
+    }
+    
     try {
-      await paymentGatewayService.toggleStatus(gateway.Id);
+      await paymentGatewayService.toggleStatus(gateway.Id, currentUser.role);
       toast.success(`Gateway ${gateway.isActive ? 'deactivated' : 'activated'} successfully!`);
       loadGateways();
     } catch (err) {
-      toast.error("Failed to update gateway status");
+      if (err.message.includes("Access denied")) {
+        toast.error("Access denied. Admin privileges required.");
+      } else {
+        toast.error("Failed to update gateway status");
+      }
       console.error("Failed to toggle status:", err);
     }
+  };
+
+  const toggleAccountNumberVisibility = (gatewayId) => {
+    setShowAccountNumbers(prev => ({
+      ...prev,
+      [gatewayId]: !prev[gatewayId]
+    }));
+  };
+
+  const maskAccountNumber = (accountNumber) => {
+    if (!accountNumber || accountNumber.length < 4) return accountNumber;
+    return '**** **** **** ' + accountNumber.slice(-4);
   };
 
   const copyAccountNumber = (accountNumber) => {
@@ -134,8 +184,20 @@ const AdminPaymentGateways = () => {
     gateway.gatewayType.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) return <Loading />;
+if (loading) return <Loading />;
   if (error) return <Error message={error} onRetry={loadGateways} />;
+
+  if (!isAdmin) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <ApperIcon name="Lock" className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600">You don't have permission to access payment gateway management.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -149,14 +211,15 @@ const AdminPaymentGateways = () => {
               </h1>
               <p className="text-gray-600">Manage payment methods and gateway configurations</p>
             </div>
-            <Button
-              variant="primary"
-              onClick={() => setShowModal(true)}
-            >
-              <ApperIcon name="Plus" className="w-4 h-4 mr-2" />
-              Add Gateway
-            </Button>
-          </div>
+{isAdmin && (
+              <Button
+                variant="primary"
+                onClick={() => setShowModal(true)}
+              >
+                <ApperIcon name="Plus" className="w-4 h-4 mr-2" />
+                Add Gateway
+              </Button>
+            )}
 
           {/* Search */}
           <div className="flex items-center gap-4">
@@ -244,23 +307,42 @@ const AdminPaymentGateways = () => {
                           </Badge>
                         </button>
                       </td>
-                      <td className="px-6 py-4 text-right">
+<td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(gateway)}
-                          >
-                            <ApperIcon name="Edit2" className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(gateway)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <ApperIcon name="Trash2" className="w-4 h-4" />
-                          </Button>
+                          <div className="flex items-center mr-4">
+                            <span className="text-sm text-gray-600 mr-2">
+                              {showAccountNumbers[gateway.Id] ? gateway.accountNumber : maskAccountNumber(gateway.accountNumber)}
+                            </span>
+                            {isAdmin && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => toggleAccountNumberVisibility(gateway.Id)}
+                                className="p-1"
+                              >
+                                <ApperIcon name={showAccountNumbers[gateway.Id] ? "EyeOff" : "Eye"} className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                          {isAdmin && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(gateway)}
+                              >
+                                <ApperIcon name="Edit2" className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(gateway)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <ApperIcon name="Trash2" className="w-4 h-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
