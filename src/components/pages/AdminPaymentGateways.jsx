@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import { paymentGatewayService } from "@/services/api/paymentGatewayService";
 import ApperIcon from "@/components/ApperIcon";
 import Loading from "@/components/ui/Loading";
@@ -10,588 +10,599 @@ import Account from "@/components/pages/Account";
 import Badge from "@/components/atoms/Badge";
 import Input from "@/components/atoms/Input";
 import Button from "@/components/atoms/Button";
-const AdminPaymentGateways = () => {
-  // Simulated user context - in real app this would come from auth context
-  const [currentUser] = useState({
-    id: 'admin-001',
-    role: 'admin',
-    name: 'Admin User'
-  });
-  
-const [gateways, setGateways] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [editingGateway, setEditingGateway] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showAccountNumbers, setShowAccountNumbers] = useState({});
-  const [isTestingMode, setIsTestingMode] = useState(false);
+
+function AdminPaymentGateways() {
+  const [gateways, setGateways] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [isAdmin, setIsAdmin] = useState(true)
+  const [selectedGateway, setSelectedGateway] = useState(null)
   const [formData, setFormData] = useState({
-    name: "",
-    accountHolderName: "",
-    accountNumber: "",
-    gatewayType: "Bank Account",
-    logoUrl: "",
-    isActive: true
-  });
-
-  // Check if user has admin role
-  const isAdmin = currentUser?.role === 'admin';
-
-  const loadGateways = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const data = await paymentGatewayService.getAll();
-      setGateways(data);
-    } catch (err) {
-      setError("Failed to load payment gateways");
-      console.error("Failed to load gateways:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    name: '',
+    type: 'card',
+    accountNumber: '',
+    routingNumber: '',
+    merchantId: '',
+    apiKey: '',
+    apiSecret: '',
+    webhookUrl: '',
+    isActive: true,
+    priority: 1,
+    fees: {
+      transactionFee: 0,
+      percentageFee: 0
+    },
+    supportedCurrencies: ['USD'],
+    paymentMethods: ['card']
+  })
+  const [showForm, setShowForm] = useState(false)
+  const [visibleAccountNumbers, setVisibleAccountNumbers] = useState({})
+  const [testingMode, setTestingMode] = useState(false)
 
   useEffect(() => {
-    loadGateways();
-  }, []);
+    loadGateways()
+  }, [])
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!isAdmin) {
-      toast.error("Access denied. Admin privileges required.");
-      return;
-    }
-    
-    if (!formData.name || !formData.accountHolderName || !formData.accountNumber) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
+  async function loadGateways() {
     try {
-      if (editingGateway) {
-        await paymentGatewayService.update(editingGateway.Id, formData, currentUser.role);
-        toast.success("Payment gateway updated successfully!");
+      setLoading(true)
+      setError(null)
+      const data = await paymentGatewayService.getAllGateways()
+      setGateways(Array.isArray(data) ? data : [])
+    } catch (err) {
+      console.error('Failed to load payment gateways:', err)
+      setError(err.message || 'Failed to load payment gateways')
+      setGateways([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function handleInputChange(field, value) {
+    if (field.includes('.')) {
+      const [parent, child] = field.split('.')
+      setFormData(prev => ({
+        ...prev,
+        [parent]: {
+          ...prev[parent],
+          [child]: value
+        }
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [field]: value
+      }))
+    }
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    try {
+      if (selectedGateway) {
+        await paymentGatewayService.updateGateway(selectedGateway.id, formData)
+        toast.success('Payment gateway updated successfully!')
       } else {
-        await paymentGatewayService.create(formData, currentUser.role);
-        toast.success("Payment gateway added successfully!");
+        await paymentGatewayService.createGateway(formData)
+        toast.success('Payment gateway created successfully!')
       }
-      
-      setShowModal(false);
-      setEditingGateway(null);
+      await loadGateways()
+      setShowForm(false)
+      setSelectedGateway(null)
       setFormData({
-        name: "",
-        accountHolderName: "",
-        accountNumber: "",
-        gatewayType: "Bank Account",
-        logoUrl: "",
-        isActive: true
-      });
-      loadGateways();
+        name: '',
+        type: 'card',
+        accountNumber: '',
+        routingNumber: '',
+        merchantId: '',
+        apiKey: '',
+        apiSecret: '',
+        webhookUrl: '',
+        isActive: true,
+        priority: 1,
+        fees: {
+          transactionFee: 0,
+          percentageFee: 0
+        },
+        supportedCurrencies: ['USD'],
+        paymentMethods: ['card']
+      })
     } catch (err) {
-      if (err.message.includes("Access denied")) {
-        toast.error("Access denied. Admin privileges required.");
-      } else {
-        toast.error(editingGateway ? "Failed to update gateway" : "Failed to add gateway");
-      }
-      console.error("Failed to save gateway:", err);
+      console.error('Failed to save payment gateway:', err)
+      toast.error(err.message || 'Failed to save payment gateway')
     }
-  };
+  }
 
-  const handleEdit = (gateway) => {
-    setEditingGateway(gateway);
+  function handleEdit(gateway) {
+    setSelectedGateway(gateway)
     setFormData({
-      name: gateway.name,
-      accountHolderName: gateway.accountHolderName,
-      accountNumber: gateway.accountNumber,
-      gatewayType: gateway.gatewayType,
-      logoUrl: gateway.logoUrl || "",
-      isActive: gateway.isActive
-    });
-    setShowModal(true);
-  };
+      name: gateway.name || '',
+      type: gateway.type || 'card',
+      accountNumber: gateway.accountNumber || '',
+      routingNumber: gateway.routingNumber || '',
+      merchantId: gateway.merchantId || '',
+      apiKey: gateway.apiKey || '',
+      apiSecret: gateway.apiSecret || '',
+      webhookUrl: gateway.webhookUrl || '',
+      isActive: gateway.isActive !== false,
+      priority: gateway.priority || 1,
+      fees: {
+        transactionFee: gateway.fees?.transactionFee || 0,
+        percentageFee: gateway.fees?.percentageFee || 0
+      },
+      supportedCurrencies: gateway.supportedCurrencies || ['USD'],
+      paymentMethods: gateway.paymentMethods || ['card']
+    })
+    setShowForm(true)
+  }
 
-const handleDelete = async (gateway) => {
-    if (!isAdmin) {
-      toast.error("Access denied. Admin privileges required.");
-      return;
-    }
-    
-    if (!window.confirm(`Are you sure you want to delete ${gateway.name}? This action cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      await paymentGatewayService.delete(gateway.Id, currentUser.role);
-      toast.success("Payment gateway deleted successfully!");
-      loadGateways();
-    } catch (err) {
-      if (err.message.includes("Access denied")) {
-        toast.error("Access denied. Admin privileges required.");
-      } else {
-        toast.error(err.message || "Failed to delete gateway");
-      }
-      console.error("Failed to delete gateway:", err);
-    }
-  };
-
-  const handleDragEnd = async (result) => {
-    if (!result.destination || !isAdmin) return;
-
-    const items = Array.from(filteredGateways);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    try {
-      await paymentGatewayService.updateOrder(items.map(item => item.Id), currentUser.role);
-      toast.success("Gateway order updated successfully!");
-      loadGateways();
-    } catch (err) {
-      toast.error("Failed to update gateway order");
-      console.error("Failed to update order:", err);
-    }
-  };
-
-  const handleToggleTestingMode = async () => {
-    if (!isAdmin) {
-      toast.error("Access denied. Admin privileges required.");
-      return;
-    }
-
-    try {
-      await paymentGatewayService.toggleTestingMode(!isTestingMode);
-      setIsTestingMode(!isTestingMode);
-      toast.success(`Testing mode ${!isTestingMode ? 'enabled' : 'disabled'}`);
-      loadGateways();
-    } catch (err) {
-      toast.error("Failed to toggle testing mode");
-      console.error("Failed to toggle testing mode:", err);
-    }
-  };
-
-const handleToggleStatus = async (gateway) => {
-    if (!isAdmin) {
-      toast.error("Access denied. Admin privileges required.");
-      return;
+  async function handleDelete(gateway) {
+    if (!window.confirm(`Are you sure you want to delete ${gateway.name}?`)) {
+      return
     }
     
     try {
-      await paymentGatewayService.toggleStatus(gateway.Id, currentUser.role);
-      toast.success(`Gateway ${gateway.isActive ? 'deactivated' : 'activated'} successfully!`);
-      loadGateways();
+      await paymentGatewayService.deleteGateway(gateway.id)
+      toast.success('Payment gateway deleted successfully!')
+      await loadGateways()
     } catch (err) {
-      if (err.message.includes("Access denied")) {
-        toast.error("Access denied. Admin privileges required.");
-      } else {
-        toast.error("Failed to update gateway status");
-      }
-      console.error("Failed to toggle status:", err);
+      console.error('Failed to delete payment gateway:', err)
+      toast.error(err.message || 'Failed to delete payment gateway')
     }
-  };
+  }
 
-  const toggleAccountNumberVisibility = (gatewayId) => {
-    setShowAccountNumbers(prev => ({
+  async function handleDragEnd(result) {
+    if (!result.destination) return
+
+    const items = Array.from(gateways)
+    const [reorderedItem] = items.splice(result.source.index, 1)
+    items.splice(result.destination.index, 0, reorderedItem)
+
+    // Update priorities based on new order
+    const updatedItems = items.map((item, index) => ({
+      ...item,
+      priority: index + 1
+    }))
+
+    setGateways(updatedItems)
+
+    try {
+      await paymentGatewayService.reorderGateways(updatedItems.map(item => ({
+        id: item.id,
+        priority: item.priority
+      })))
+      toast.success('Gateway order updated successfully!')
+    } catch (err) {
+      console.error('Failed to update gateway order:', err)
+      toast.error('Failed to update gateway order')
+      // Revert on error
+      await loadGateways()
+    }
+  }
+
+  async function handleToggleTestingMode() {
+    try {
+      const newMode = !testingMode
+      await paymentGatewayService.setTestingMode(newMode)
+      setTestingMode(newMode)
+      toast.success(`Testing mode ${newMode ? 'enabled' : 'disabled'}`)
+      await loadGateways()
+    } catch (err) {
+      console.error('Failed to toggle testing mode:', err)
+      toast.error('Failed to toggle testing mode')
+    }
+  }
+
+  async function handleToggleStatus(gateway) {
+    try {
+      const updatedGateway = { ...gateway, isActive: !gateway.isActive }
+      await paymentGatewayService.updateGateway(gateway.id, updatedGateway)
+      toast.success(`Gateway ${updatedGateway.isActive ? 'activated' : 'deactivated'}`)
+      await loadGateways()
+    } catch (err) {
+      console.error('Failed to toggle gateway status:', err)
+      toast.error('Failed to update gateway status')
+    }
+  }
+
+  function toggleAccountNumberVisibility(gatewayId) {
+    setVisibleAccountNumbers(prev => ({
       ...prev,
       [gatewayId]: !prev[gatewayId]
-    }));
-  };
+    }))
+  }
 
-  const maskAccountNumber = (accountNumber) => {
-    if (!accountNumber || accountNumber.length < 4) return accountNumber;
-    return '**** **** **** ' + accountNumber.slice(-4);
-  };
+  function maskAccountNumber(accountNumber) {
+    if (!accountNumber) return 'Not set'
+    if (accountNumber.length <= 4) return accountNumber
+    return `****${accountNumber.slice(-4)}`
+  }
 
-  const copyAccountNumber = (accountNumber) => {
-    navigator.clipboard.writeText(accountNumber);
-    toast.success("Account number copied to clipboard!");
-  };
-
-  const filteredGateways = gateways.filter(gateway =>
-    gateway.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    gateway.accountHolderName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    gateway.gatewayType.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-if (loading) return <Loading />;
-  if (error) return <Error message={error} onRetry={loadGateways} />;
+  function copyAccountNumber(accountNumber) {
+    if (!accountNumber) return
+    navigator.clipboard.writeText(accountNumber)
+      .then(() => toast.success('Account number copied to clipboard'))
+      .catch(() => toast.error('Failed to copy account number'))
+  }
 
   if (!isAdmin) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <ApperIcon name="Lock" className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600">You don't have permission to access payment gateway management.</p>
-        </div>
-      </div>
-    );
+    return <Account />
   }
+
+  if (loading) {
+    return <Loading message="Loading payment gateways..." />
+  }
+
+  if (error) {
+    return (
+      <Error 
+        message={error}
+        onRetry={loadGateways}
+      />
+    )
+  }
+
+  const filteredGateways = gateways.filter(gateway => gateway && gateway.id)
 
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-display font-bold text-gray-900 mb-2">
-                Payment Gateways
-              </h1>
-              <p className="text-gray-600">Manage payment methods and gateway configurations</p>
-            </div>
-{isAdmin && (
-              <Button
-                variant="primary"
-                onClick={() => setShowModal(true)}
-              >
-                <ApperIcon name="Plus" className="w-4 h-4 mr-2" />
-                Add Gateway
-              </Button>
-            )}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-display font-bold text-gray-900">
+              Payment Gateways
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Manage payment processing gateways and configurations
+            </p>
           </div>
-
-          {/* Search */}
-          <div className="flex items-center gap-4">
-            <div className="flex-1 max-w-md relative">
-              <Input
-                placeholder="Search gateways..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-              <ApperIcon name="Search" className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            </div>
+          
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              onClick={handleToggleTestingMode}
+              variant={testingMode ? 'primary' : 'secondary'}
+              className="flex items-center gap-2"
+            >
+              <ApperIcon name="TestTube" size={16} />
+              {testingMode ? 'Testing Mode' : 'Production Mode'}
+            </Button>
+            
+            <Button
+              onClick={() => {
+                setSelectedGateway(null)
+                setFormData({
+                  name: '',
+                  type: 'card',
+                  accountNumber: '',
+                  routingNumber: '',
+                  merchantId: '',
+                  apiKey: '',
+                  apiSecret: '',
+                  webhookUrl: '',
+                  isActive: true,
+                  priority: 1,
+                  fees: {
+                    transactionFee: 0,
+                    percentageFee: 0
+                  },
+                  supportedCurrencies: ['USD'],
+                  paymentMethods: ['card']
+                })
+                setShowForm(true)
+              }}
+              className="flex items-center gap-2"
+            >
+              <ApperIcon name="Plus" size={16} />
+              Add Gateway
+            </Button>
           </div>
-{/* Testing Mode Toggle */}
-          {isAdmin && (
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-              <div className="flex items-center gap-3">
-                <ApperIcon name="TestTube" className="w-5 h-5 text-blue-600" />
-                <div>
-                  <h3 className="font-medium text-blue-900">Testing Mode</h3>
-                  <p className="text-sm text-blue-600">Use sandbox environment for payment testing</p>
-                </div>
-              </div>
-              <Button
-                variant={isTestingMode ? "primary" : "secondary"}
-                onClick={handleToggleTestingMode}
-                className="min-w-24"
-              >
-                {isTestingMode ? "Enabled" : "Disabled"}
-              </Button>
-            </div>
-          )}
-
-          {isTestingMode && (
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-center gap-2 text-yellow-800">
-                <ApperIcon name="AlertTriangle" className="w-4 h-4" />
-                <span className="font-medium">Testing Mode Active</span>
-              </div>
-              <p className="text-sm text-yellow-700 mt-1">
-                All payment operations are in sandbox mode. No real transactions will be processed.
-              </p>
-            </div>
-          )}
         </div>
 
-        {/* Gateways Table */}
-        <div className="bg-white rounded-xl shadow-premium overflow-hidden">
-          {filteredGateways.length === 0 ? (
-            <div className="p-6">
-              <Empty
-                title="No payment gateways found"
-                description={searchTerm ? "No gateways match your search criteria." : "Add your first payment gateway to get started."}
-                actionLabel="Add Gateway"
-                onAction={() => setShowModal(true)}
-                icon="CreditCard"
-              />
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-<DragDropContext onDragEnd={handleDragEnd}>
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      {isAdmin && <th className="px-4 py-4 text-left text-sm font-medium text-gray-900">Order</th>}
-                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Gateway</th>
-                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Account Details</th>
-                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Type</th>
-                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Status</th>
-                      <th className="px-6 py-4 text-right text-sm font-medium text-gray-900">Actions</th>
-                    </tr>
-                  </thead>
-                  <Droppable droppableId="gateways" isDropDisabled={!isAdmin}>
-                    {(provided, snapshot) => (
-                      <tbody 
-                        {...provided.droppableProps}
-                        ref={provided.innerRef}
-                        className={`divide-y divide-gray-200 ${snapshot.isDraggingOver ? 'bg-blue-50' : ''}`}
-                      >
-                        {filteredGateways.map((gateway, index) => (
-                          <Draggable 
-                            key={gateway.Id} 
-                            draggableId={gateway.Id.toString()} 
-                            index={index}
-                            isDragDisabled={!isAdmin}
-                          >
-                            {(provided, snapshot) => (
-                              <tr
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                className={`hover:bg-gray-50 ${snapshot.isDragging ? 'bg-blue-100 shadow-lg' : ''}`}
-                              >
-                                {isAdmin && (
-                                  <td className="px-4 py-4">
-                                    <div 
-                                      {...provided.dragHandleProps}
-                                      className="cursor-move p-1 rounded hover:bg-gray-200"
-                                    >
-                                      <ApperIcon name="GripVertical" className="w-4 h-4 text-gray-400" />
-                                    </div>
-                                  </td>
-                                )}
-                                <td className="px-6 py-4">
-                                  <div className="flex items-center gap-3">
-                                    <img
-                                      src={gateway.logoUrl || "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=50&h=50&fit=crop"}
-                                      alt={gateway.name}
-                                      className="w-10 h-10 rounded-lg object-cover"
-                                    />
-                                    <div>
-                                      <div className="flex items-center gap-2">
-                                        <p className="font-medium text-gray-900">{gateway.name}</p>
-                                        {isTestingMode && (
-                                          <Badge variant="warning" size="sm">
-                                            <ApperIcon name="TestTube" className="w-3 h-3 mr-1" />
-                                            Test
-                                          </Badge>
-                                        )}
-                                      </div>
-                                      <p className="text-sm text-gray-600">{gateway.accountHolderName}</p>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-mono text-sm">
-                                      {showAccountNumbers[gateway.Id] ? gateway.accountNumber : maskAccountNumber(gateway.accountNumber)}
-                                    </span>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => copyAccountNumber(gateway.accountNumber)}
-                                      className="p-1"
-                                    >
-                                      <ApperIcon name="Copy" className="w-4 h-4" />
-                                    </Button>
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                  <Badge variant="secondary" size="sm">
-                                    {gateway.gatewayType}
-                                  </Badge>
-                                </td>
-                                <td className="px-6 py-4">
-                                  <button
-                                    onClick={() => handleToggleStatus(gateway)}
-                                    className="flex items-center gap-2"
-                                    disabled={!isAdmin}
-                                  >
-                                    <Badge variant={gateway.isActive ? "success" : "secondary"}>
-                                      <ApperIcon 
-                                        name={gateway.isActive ? "CheckCircle" : "XCircle"} 
-                                        className="w-3 h-3 mr-1"
-                                      />
-                                      {gateway.isActive ? "Active" : "Inactive"}
-                                    </Badge>
-                                  </button>
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                  <div className="flex items-center justify-end gap-2">
-                                    {isAdmin && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => toggleAccountNumberVisibility(gateway.Id)}
-                                        className="p-1"
-                                      >
-                                        <ApperIcon name={showAccountNumbers[gateway.Id] ? "EyeOff" : "Eye"} className="w-4 h-4" />
-                                      </Button>
-                                    )}
-                                    {isAdmin && (
-                                      <>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => handleEdit(gateway)}
-                                        >
-                                          <ApperIcon name="Edit2" className="w-4 h-4" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => handleDelete(gateway)}
-                                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        >
-                                          <ApperIcon name="Trash2" className="w-4 h-4" />
-                                        </Button>
-                                      </>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                      </tbody>
-                    )}
-                  </Droppable>
-                </table>
-              </DragDropContext>
-            </div>
-          )}
-        </div>
-
-        {/* Add/Edit Modal */}
-        {showModal && (
-          <div className="fixed inset-0 z-50 overflow-y-auto">
-            <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-              <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowModal(false)}></div>
-
-              <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <form onSubmit={handleSubmit}>
-                  <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <div className="flex items-center mb-4">
-                      <ApperIcon name="CreditCard" className="w-6 h-6 text-primary-600 mr-3" />
-                      <h3 className="text-lg font-medium text-gray-900">
-                        {editingGateway ? "Edit Payment Gateway" : "Add Payment Gateway"}
-                      </h3>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Gateway Name *
-                        </label>
-                        <Input
-                          type="text"
-                          value={formData.name}
-                          onChange={(e) => handleInputChange("name", e.target.value)}
-                          placeholder="e.g., HBL, JazzCash, EasyPaisa"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Account Holder Name *
-                        </label>
-                        <Input
-                          type="text"
-                          value={formData.accountHolderName}
-                          onChange={(e) => handleInputChange("accountHolderName", e.target.value)}
-                          placeholder="Account holder name"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Account Number *
-                        </label>
-                        <Input
-                          type="text"
-                          value={formData.accountNumber}
-                          onChange={(e) => handleInputChange("accountNumber", e.target.value)}
-                          placeholder="Full account number"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Gateway Type
-                        </label>
-                        <select
-                          value={formData.gatewayType}
-                          onChange={(e) => handleInputChange("gatewayType", e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        >
-                          <option value="Bank Account">Bank Account</option>
-                          <option value="Mobile Wallet">Mobile Wallet</option>
-                          <option value="Digital Payment">Digital Payment</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Logo URL (Optional)
-                        </label>
-                        <Input
-                          type="text"
-                          value={formData.logoUrl}
-                          onChange={(e) => handleInputChange("logoUrl", e.target.value)}
-                          placeholder="https://example.com/logo.png"
-                        />
-                      </div>
-
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id="isActive"
-                          checked={formData.isActive}
-                          onChange={(e) => handleInputChange("isActive", e.target.checked)}
-                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                        />
-                        <label htmlFor="isActive" className="ml-2 text-sm text-gray-700">
-                          Gateway is active
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <Button type="submit" variant="primary" className="sm:ml-3">
-                      {editingGateway ? "Update Gateway" : "Add Gateway"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setShowModal(false);
-                        setEditingGateway(null);
-                        setFormData({
-                          name: "",
-                          accountHolderName: "",
-                          accountNumber: "",
-                          gatewayType: "Bank Account",
-                          logoUrl: "",
-                          isActive: true
-                        });
-                      }}
-                      className="mt-3 sm:mt-0"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
+        {/* Testing Mode Banner */}
+        {testingMode && (
+          <div className="bg-warning/10 border border-warning/20 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-2">
+              <ApperIcon name="AlertTriangle" size={20} className="text-warning" />
+              <div>
+                <h3 className="font-semibold text-warning">Testing Mode Active</h3>
+                <p className="text-sm text-gray-600">
+                  All transactions will be processed in test mode. No real payments will be charged.
+                </p>
               </div>
             </div>
           </div>
         )}
+
+        {/* Gateway Form */}
+        {showForm && (
+          <div className="bg-surface rounded-lg shadow-premium-lg p-6 mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-display font-semibold">
+                {selectedGateway ? 'Edit Gateway' : 'Add New Gateway'}
+              </h2>
+              <Button
+                onClick={() => {
+                  setShowForm(false)
+                  setSelectedGateway(null)
+                }}
+                variant="ghost"
+                size="sm"
+              >
+                <ApperIcon name="X" size={16} />
+              </Button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input
+                  label="Gateway Name"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  placeholder="e.g., Stripe, PayPal, Square"
+                  required
+                />
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Gateway Type
+                  </label>
+                  <select
+                    value={formData.type}
+                    onChange={(e) => handleInputChange('type', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="card">Credit/Debit Card</option>
+                    <option value="bank">Bank Transfer</option>
+                    <option value="digital_wallet">Digital Wallet</option>
+                    <option value="cryptocurrency">Cryptocurrency</option>
+                  </select>
+                </div>
+
+                <Input
+                  label="Account Number"
+                  type="password"
+                  value={formData.accountNumber}
+                  onChange={(e) => handleInputChange('accountNumber', e.target.value)}
+                  placeholder="Account or merchant ID"
+                />
+
+                <Input
+                  label="Routing Number"
+                  value={formData.routingNumber}
+                  onChange={(e) => handleInputChange('routingNumber', e.target.value)}
+                  placeholder="Optional routing number"
+                />
+
+                <Input
+                  label="Merchant ID"
+                  value={formData.merchantId}
+                  onChange={(e) => handleInputChange('merchantId', e.target.value)}
+                  placeholder="Merchant identifier"
+                />
+
+                <Input
+                  label="API Key"
+                  type="password"
+                  value={formData.apiKey}
+                  onChange={(e) => handleInputChange('apiKey', e.target.value)}
+                  placeholder="API key for gateway"
+                />
+
+                <Input
+                  label="API Secret"
+                  type="password"
+                  value={formData.apiSecret}
+                  onChange={(e) => handleInputChange('apiSecret', e.target.value)}
+                  placeholder="API secret key"
+                />
+
+                <Input
+                  label="Webhook URL"
+                  value={formData.webhookUrl}
+                  onChange={(e) => handleInputChange('webhookUrl', e.target.value)}
+                  placeholder="https://your-site.com/webhook"
+                />
+
+                <Input
+                  label="Transaction Fee ($)"
+                  type="number"
+                  step="0.01"
+                  value={formData.fees.transactionFee}
+                  onChange={(e) => handleInputChange('fees.transactionFee', parseFloat(e.target.value) || 0)}
+                  placeholder="0.30"
+                />
+
+                <Input
+                  label="Percentage Fee (%)"
+                  type="number"
+                  step="0.01"
+                  value={formData.fees.percentageFee}
+                  onChange={(e) => handleInputChange('fees.percentageFee', parseFloat(e.target.value) || 0)}
+                  placeholder="2.9"
+                />
+
+                <Input
+                  label="Priority"
+                  type="number"
+                  value={formData.priority}
+                  onChange={(e) => handleInputChange('priority', parseInt(e.target.value) || 1)}
+                  placeholder="1"
+                  min="1"
+                />
+
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="isActive"
+                    checked={formData.isActive}
+                    onChange={(e) => handleInputChange('isActive', e.target.checked)}
+                    className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <label htmlFor="isActive" className="text-sm font-medium text-gray-700">
+                    Active Gateway
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-6 border-t">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setShowForm(false)
+                    setSelectedGateway(null)
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {selectedGateway ? 'Update Gateway' : 'Create Gateway'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Gateway List */}
+        {filteredGateways.length === 0 ? (
+          <Empty 
+            title="No Payment Gateways"
+            description="Add your first payment gateway to start processing payments"
+            actionLabel="Add Gateway"
+            onAction={() => setShowForm(true)}
+          />
+        ) : (
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <Droppable droppableId="gateways">
+              {(provided) => (
+                <div
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                  className="space-y-4"
+                >
+                  {filteredGateways.map((gateway, index) => (
+                    <Draggable
+                      key={gateway.id}
+                      draggableId={gateway.id.toString()}
+                      index={index}
+                    >
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          className={`bg-surface rounded-lg shadow-premium p-6 border-2 transition-all ${
+                            snapshot.isDragging
+                              ? 'border-primary-300 shadow-premium-lg'
+                              : 'border-transparent hover:shadow-premium-lg'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div
+                                {...provided.dragHandleProps}
+                                className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+                              >
+                                <ApperIcon name="GripVertical" size={20} />
+                              </div>
+
+                              <div>
+                                <div className="flex items-center gap-3">
+                                  <h3 className="text-lg font-semibold text-gray-900">
+                                    {gateway.name}
+                                  </h3>
+                                  <Badge
+                                    variant={gateway.isActive ? 'success' : 'secondary'}
+                                  >
+                                    {gateway.isActive ? 'Active' : 'Inactive'}
+                                  </Badge>
+                                  <Badge variant="outline">
+                                    {gateway.type}
+                                  </Badge>
+                                </div>
+                                
+                                <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                                  <span>Priority: {gateway.priority}</span>
+                                  <span>•</span>
+                                  <span>
+                                    Fee: ${gateway.fees?.transactionFee || 0} + {gateway.fees?.percentageFee || 0}%
+                                  </span>
+                                  <span>•</span>
+                                  <div className="flex items-center gap-2">
+                                    <span>Account:</span>
+                                    <span className="font-mono">
+                                      {visibleAccountNumbers[gateway.id]
+                                        ? gateway.accountNumber || 'Not set'
+                                        : maskAccountNumber(gateway.accountNumber)
+                                      }
+                                    </span>
+                                    <button
+                                      onClick={() => toggleAccountNumberVisibility(gateway.id)}
+                                      className="text-gray-400 hover:text-gray-600"
+                                    >
+                                      <ApperIcon
+                                        name={visibleAccountNumbers[gateway.id] ? 'EyeOff' : 'Eye'}
+                                        size={14}
+                                      />
+                                    </button>
+                                    {gateway.accountNumber && (
+                                      <button
+                                        onClick={() => copyAccountNumber(gateway.accountNumber)}
+                                        className="text-gray-400 hover:text-gray-600"
+                                      >
+                                        <ApperIcon name="Copy" size={14} />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <Button
+                                onClick={() => handleToggleStatus(gateway)}
+                                variant={gateway.isActive ? 'secondary' : 'primary'}
+                                size="sm"
+                              >
+                                <ApperIcon
+                                  name={gateway.isActive ? 'Pause' : 'Play'}
+                                  size={14}
+                                />
+                                {gateway.isActive ? 'Deactivate' : 'Activate'}
+                              </Button>
+
+                              <Button
+                                onClick={() => handleEdit(gateway)}
+                                variant="ghost"
+                                size="sm"
+                              >
+                                <ApperIcon name="Edit" size={14} />
+                              </Button>
+
+                              <Button
+                                onClick={() => handleDelete(gateway)}
+                                variant="ghost"
+                                size="sm"
+                                className="text-error hover:text-error hover:bg-error/10"
+                              >
+                                <ApperIcon name="Trash2" size={14} />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
+        )}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default AdminPaymentGateways;
+export default AdminPaymentGateways
