@@ -200,10 +200,9 @@ const runCurrencyDisplayTests = (gatewayData) => {
       actual: actualDecimals
     });
     
-    // Test 3: Fee formatting consistency
+// Test 3: Fee formatting consistency
     const formattedFee = `${gatewayData.currencySymbol}${gatewayData.fees?.transactionFee || '0.00'}`;
-    const isValidFormat = /^[€$£₹¥C\$A\$]\d+(\.\d{2})?$/.test(formattedFee.replace('C$', 'C').replace('A$', 'A'));
-    
+    const isValidFormat = /^[€$£₹¥C$A$]\d+(\.\d{2})?$/.test(formattedFee.replace('C$', 'C').replace('A$', 'A'));
     testResults.push({
       test: 'Fee Format Consistency',
       passed: isValidFormat,
