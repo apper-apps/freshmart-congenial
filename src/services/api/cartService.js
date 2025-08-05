@@ -1,12 +1,69 @@
-import { productService } from "./productService.js";
+import { productService } from "@/services/api/productService";
 
-// In-memory cart storage (would typically use localStorage or Redux)
+// Cart storage with localStorage persistence
 let cartItems = [];
+const CART_STORAGE_KEY = 'freshmart_cart';
+
+// Event system for real-time updates
+const cartEventListeners = new Set();
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Load cart from localStorage on initialization
+const loadCartFromStorage = () => {
+  try {
+    const stored = localStorage.getItem(CART_STORAGE_KEY);
+    if (stored) {
+      cartItems = JSON.parse(stored);
+    }
+  } catch (error) {
+    console.warn('Failed to load cart from localStorage:', error);
+    cartItems = [];
+  }
+};
+
+// Save cart to localStorage
+const saveCartToStorage = () => {
+  try {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+  } catch (error) {
+    console.warn('Failed to save cart to localStorage:', error);
+  }
+};
+
+// Emit cart update events
+const emitCartUpdate = (eventType, data = {}) => {
+  const event = new CustomEvent('cartUpdate', {
+    detail: { 
+      type: eventType, 
+      items: [...cartItems], 
+      count: cartItems.reduce((count, item) => count + item.quantity, 0),
+      ...data
+    }
+  });
+  window.dispatchEvent(event);
+  
+  // Also notify registered listeners
+  cartEventListeners.forEach(listener => {
+    try {
+      listener({ type: eventType, items: [...cartItems], count: cartItems.reduce((count, item) => count + item.quantity, 0), ...data });
+    } catch (error) {
+      console.warn('Cart event listener error:', error);
+    }
+  });
+};
+
+// Initialize cart from storage
+loadCartFromStorage();
+
 export const cartService = {
-async addItem(productId, quantity = 1, bulkOption = null) {
+  // Add event listener for cart updates
+  addCartListener(listener) {
+    cartEventListeners.add(listener);
+    return () => cartEventListeners.delete(listener);
+  },
+
+  async addItem(productId, quantity = 1, bulkOption = null) {
     await delay(100);
     
     const product = await productService.getById(productId);
@@ -35,6 +92,8 @@ async addItem(productId, quantity = 1, bulkOption = null) {
       });
     }
 
+    saveCartToStorage();
+    emitCartUpdate('add', { productId, quantity, product });
     return this.getItems();
   },
 
@@ -42,7 +101,7 @@ async addItem(productId, quantity = 1, bulkOption = null) {
     return [...cartItems];
   },
 
-async updateQuantity(productId, newQuantity) {
+  async updateQuantity(productId, newQuantity) {
     await delay(100);
     
     const itemIndex = cartItems.findIndex(item => item.productId === productId);
@@ -60,6 +119,8 @@ async updateQuantity(productId, newQuantity) {
     cartItems[itemIndex].quantity = newQuantity;
     cartItems[itemIndex].subtotal = parseFloat((price * newQuantity).toFixed(2));
 
+    saveCartToStorage();
+    emitCartUpdate('update', { productId, quantity: newQuantity });
     return this.getItems();
   },
 
@@ -71,16 +132,21 @@ async updateQuantity(productId, newQuantity) {
       throw new Error("Item not found in cart");
     }
 
+    const removedItem = cartItems[itemIndex];
     cartItems.splice(itemIndex, 1);
+    saveCartToStorage();
+    emitCartUpdate('remove', { productId, removedItem });
     return this.getItems();
   },
 
   clearCart() {
     cartItems = [];
+    saveCartToStorage();
+    emitCartUpdate('clear');
     return [];
   },
 
-getCartSummary() {
+  getCartSummary() {
     const subtotal = parseFloat(cartItems.reduce((sum, item) => sum + parseFloat(item.subtotal), 0).toFixed(2));
     
     // Calculate bulk savings
@@ -108,5 +174,11 @@ getCartSummary() {
 
   getItemCount() {
     return cartItems.reduce((count, item) => count + item.quantity, 0);
-  }
+  },
+
+  // Force reload from localStorage (useful for cross-tab sync)
+  reloadFromStorage() {
+    loadCartFromStorage();
+    emitCartUpdate('reload');
+}
 };

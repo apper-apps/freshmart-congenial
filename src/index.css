@@ -158,6 +158,107 @@ body {
   100% { background-position: -200% 0; }
 }
 
+/* Cart Icon Shake Animation */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.cart-shake {
+  animation: shake 0.8s ease-in-out;
+}
+
+/* Cart Badge Styles */
+.cart-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #EF4444;
+  color: white;
+  border-radius: 50%;
+  min-width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+.cart-badge.large-count {
+  min-width: 24px;
+  height: 24px;
+  font-size: 10px;
+  top: -10px;
+  right: -10px;
+}
+
+/* Responsive cart badge adjustments */
+@media (max-width: 480px) {
+  .cart-badge {
+    top: -6px;
+    right: -6px;
+    min-width: 18px;
+    height: 18px;
+    font-size: 11px;
+  }
+  
+  .cart-badge.large-count {
+    min-width: 22px;
+    height: 22px;
+    font-size: 9px;
+    top: -8px;
+    right: -8px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .cart-badge {
+    top: -10px;
+    right: -10px;
+    min-width: 22px;
+    height: 22px;
+    font-size: 13px;
+  }
+  
+  .cart-badge.large-count {
+    min-width: 26px;
+    height: 26px;
+    font-size: 11px;
+    top: -12px;
+    right: -12px;
+  }
+}
+
+/* Cart icon container for positioning */
+.cart-icon-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ensure cart icon animations don't interfere with layout */
+.cart-icon-container.shaking {
+  animation: shake 0.8s ease-in-out;
+}
+
+/* Pulse animation for badge when count changes */
+@keyframes badge-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.cart-badge.updated {
+  animation: badge-pulse 0.3s ease-in-out;
+}
+
 /* High contrast mode support */
 @media (prefers-contrast: high) {
   .shadow-premium,

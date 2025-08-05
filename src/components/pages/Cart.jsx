@@ -27,6 +27,37 @@ const Cart = () => {
 
   useEffect(() => {
     loadCart();
+    
+    // Listen for cart updates from other components
+    const handleCartUpdate = (event) => {
+      loadCart();
+      
+      // Update badge with animation
+      const badges = document.querySelectorAll('.cart-badge');
+      badges.forEach(badge => {
+        badge.classList.remove('updated');
+        void badge.offsetWidth;
+        badge.classList.add('updated');
+        setTimeout(() => badge.classList.remove('updated'), 300);
+      });
+    };
+
+    window.addEventListener('cartUpdate', handleCartUpdate);
+    
+    // Also listen for storage changes (cross-tab sync)
+    const handleStorageChange = (event) => {
+      if (event.key === 'freshmart_cart') {
+        cartService.reloadFromStorage();
+        loadCart();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('cartUpdate', handleCartUpdate);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const handleClearCart = () => {

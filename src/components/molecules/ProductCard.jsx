@@ -16,13 +16,29 @@ const ProductCard = ({ product }) => {
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
   const [hoverTimeout, setHoverTimeout] = useState(null);
 
-  const handleAddToCart = (e) => {
+const handleAddToCart = async (e) => {
     e.stopPropagation();
     try {
-      cartService.addItem(product.Id, 1);
+      await cartService.addItem(product.Id, 1);
       toast.success(`${product.name} added to cart!`);
+      
+      // Trigger cart shake animation
+      const cartIcons = document.querySelectorAll('.cart-icon-container');
+      cartIcons.forEach(icon => {
+        icon.classList.remove('shaking');
+        // Force reflow
+        void icon.offsetWidth;
+        icon.classList.add('shaking');
+        
+        // Remove animation class after animation completes
+        setTimeout(() => {
+          icon.classList.remove('shaking');
+        }, 800);
+      });
+      
     } catch (error) {
       toast.error("Failed to add item to cart");
+      console.error('Add to cart error:', error);
     }
   };
 
