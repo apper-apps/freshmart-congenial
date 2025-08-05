@@ -124,10 +124,10 @@ const OrderDashboard = () => {
     }
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
+const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-PK', {
       style: 'currency',
-      currency: 'INR',
+      currency: 'PKR',
       minimumFractionDigits: 0
     }).format(amount);
   };

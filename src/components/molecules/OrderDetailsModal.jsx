@@ -17,10 +17,10 @@ const OrderDetailsModal = ({ order, onClose, onStatusUpdate, statusConfig }) => 
     'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800&h=600&fit=crop'
   ];
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
+const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-PK', {
       style: 'currency',
-      currency: 'INR',
+      currency: 'PKR',
       minimumFractionDigits: 0
     }).format(amount);
   };
@@ -416,9 +416,9 @@ const OrderDetailsModal = ({ order, onClose, onStatusUpdate, statusConfig }) => 
                                   {order.paymentValidation.results.amount.message}
                                 </p>
                                 {order.paymentValidation.results.amount.details && (
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    Paid: RS {order.paymentValidation.results.amount.details.paidAmount} | 
-                                    Expected: RS {order.paymentValidation.results.amount.details.expectedAmount}
+<p className="text-xs text-gray-500 mt-1">
+                                    Paid: Rs {order.paymentValidation.results.amount.details.paidAmount.toLocaleString('en-PK')} | 
+                                    Expected: Rs {order.paymentValidation.results.amount.details.expectedAmount.toLocaleString('en-PK')}
                                   </p>
                                 )}
                               </div>

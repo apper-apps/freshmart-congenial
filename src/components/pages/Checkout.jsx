@@ -195,9 +195,9 @@ const selectedSlot = deliverySlots.find(slot => slot.value === deliveryInfo.deli
                                     onChange={e => handleInputChange("deliverySlot", e.target.value)}
                                     className="sr-only" />
                                 <div className="flex justify-between items-start">
-                                    <div>
+<div>
                                         <p className="font-medium text-gray-900">{slot.label}</p>
-                                        {slot.fee > 0 && <Badge variant="secondary" size="sm" className="mt-1">+₹{slot.fee}
+                                        {slot.fee > 0 && <Badge variant="secondary" size="sm" className="mt-1">+Rs {slot.fee.toLocaleString('en-PK')}
                                         </Badge>}
                                     </div>
                                     {deliveryInfo.deliverySlot === slot.value && <ApperIcon name="CheckCircle" className="w-5 h-5 text-primary-500" />}
@@ -238,8 +238,8 @@ const selectedSlot = deliverySlots.find(slot => slot.value === deliveryInfo.deli
                                         <span className="font-medium text-gray-900">{gateway.name}</span>
                                         <Badge variant="secondary" size="sm">
                                             {gateway.gatewayType}
-                                        </Badge>
-                                        {gateway.transactionFee > 0 && <Badge variant="warning" size="sm">+RS {gateway.transactionFee}fee
+</Badge>
+                                        {gateway.transactionFee > 0 && <Badge variant="warning" size="sm">+Rs {gateway.transactionFee.toLocaleString('en-PK')} fee
                                                                           </Badge>}
                                         <Badge variant="info" size="sm" className="flex items-center space-x-1">
                                             <ApperIcon name="Shield" className="w-3 h-3" />
@@ -309,7 +309,7 @@ const selectedSlot = deliverySlots.find(slot => slot.value === deliveryInfo.deli
                     <h2 className="font-display font-semibold text-xl text-gray-900 mb-6">Order Summary
                                         </h2>
                     {/* Items */}
-                    <div className="space-y-3 mb-6">
+<div className="space-y-3 mb-6">
                         {cartItems.map(item => <div key={item.productId} className="flex items-center gap-3">
                             <img
                                 src={item.product.imageUrl}
@@ -319,37 +319,37 @@ const selectedSlot = deliverySlots.find(slot => slot.value === deliveryInfo.deli
                                 <p className="font-medium text-sm">{item.product.name}</p>
                                 <p className="text-xs text-gray-600">Qty: {item.quantity}</p>
                             </div>
-                            <p className="font-semibold text-primary-600">RS {item.subtotal}</p>
+                            <p className="font-semibold text-primary-600">Rs {item.subtotal.toLocaleString('en-PK')}</p>
                         </div>)}
                     </div>
                     {/* Totals */}
                     <div className="space-y-3 pt-4 border-t border-gray-200">
                         <div className="flex justify-between">
                             <span className="text-gray-600">Subtotal</span>
-                            <span className="font-medium">RS {cartSummary.subtotal}</span>
+                            <span className="font-medium">Rs {cartSummary.subtotal.toLocaleString('en-PK')}</span>
                         </div>
                         {cartSummary.savings > 0 && <div className="flex justify-between text-accent-600">
                             <span>Bulk Savings</span>
-                            <span className="font-medium">-₹{cartSummary.savings}</span>
+                            <span className="font-medium">-Rs {cartSummary.savings.toLocaleString('en-PK')}</span>
                         </div>}
                         <div className="flex justify-between">
                             <span className="text-gray-600">Delivery Fee</span>
                             <span className="font-medium">
-                                {cartSummary.deliveryFee === 0 ? <Badge variant="success" size="sm">FREE</Badge> : `RS ${cartSummary.deliveryFee}`}
+                                {cartSummary.deliveryFee === 0 ? <Badge variant="success" size="sm">FREE</Badge> : `Rs ${cartSummary.deliveryFee.toLocaleString('en-PK')}`}
                             </span>
                         </div>
                         {selectedSlot && selectedSlot.fee > 0 && <div className="flex justify-between">
                             <span className="text-gray-600">Time Slot Fee</span>
-                            <span className="font-medium">RS {selectedSlot.fee}</span>
+                            <span className="font-medium">Rs {selectedSlot.fee.toLocaleString('en-PK')}</span>
                         </div>}
                         {gatewayFee > 0 && <div className="flex justify-between py-1">
                             <span className="text-sm text-gray-600">Payment Gateway Fee</span>
-                            <span className="text-sm">RS {gatewayFee}</span>
+                            <span className="text-sm">Rs {gatewayFee.toLocaleString('en-PK')}</span>
                         </div>}
                         <div className="border-t border-gray-200 pt-3">
                             <div className="flex justify-between text-lg font-bold">
                                 <span>Total</span>
-                                <span className="text-primary-600">RS {finalTotal}</span>
+                                <span className="text-primary-600">Rs {finalTotal.toLocaleString('en-PK')}</span>
                             </div>
                         </div>
                     </div>

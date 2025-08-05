@@ -39,8 +39,8 @@ const CartItem = ({ item, onUpdate }) => {
         <h3 className="font-display font-semibold text-gray-900">
           {item.product.name}
         </h3>
-        <p className="text-sm text-gray-600">
-          ₹{item.product.price}/{item.product.unit}
+<p className="text-sm text-gray-600">
+          Rs {item.product.price.toLocaleString('en-PK')}/{item.product.unit}
         </p>
         {item.selectedBulkOption && (
           <p className="text-xs text-accent-600 font-medium">
@@ -75,8 +75,8 @@ const CartItem = ({ item, onUpdate }) => {
         </div>
 
         <div className="text-right">
-          <div className="font-bold text-primary-600">
-            ₹{item.subtotal}
+<div className="font-bold text-primary-600">
+            Rs {item.subtotal.toLocaleString('en-PK')}
           </div>
         </div>
 
