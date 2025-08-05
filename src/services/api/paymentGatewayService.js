@@ -258,10 +258,21 @@ async create(gatewayData, userRole = null) {
       if (gatewayData.apiKey.length < 8) {
         throw new Error('API Key must be at least 8 characters');
       }
+
+      // Currency validation
+      const supportedCurrencies = ['USD', 'EUR', 'GBP', 'INR', 'CAD', 'AUD', 'JPY'];
+      if (gatewayData.currencyType && !supportedCurrencies.includes(gatewayData.currencyType)) {
+        throw new Error('Invalid currency type selected');
+      }
       
       // Generate new ID with collision protection
       const maxId = Math.max(...sourceData.map(g => g.Id), 0);
       const newId = maxId + 1;
+      
+      // Store plain text values for return object
+      const plainAccountNumber = gatewayData.accountNumber;
+      const plainApiKey = gatewayData.apiKey;
+      const plainApiSecret = gatewayData.apiSecret;
       
       // Encrypt sensitive data
       const encryptedAccountNumber = encryptData(gatewayData.accountNumber);
@@ -274,12 +285,14 @@ async create(gatewayData, userRole = null) {
         encryptedAccountNumber,
         encryptedApiKey,
         encryptedApiSecret,
-        accountNumber: undefined, // Remove plain text
+        accountNumber: undefined, // Remove plain text from stored data
         apiKey: undefined,
         apiSecret: undefined,
         position: sourceData.length,
         isActive: gatewayData.isActive !== undefined ? gatewayData.isActive : true,
         transactionFee: gatewayData.transactionFee || 0,
+        primaryCurrency: gatewayData.currencyType || 'USD',
+        supportedCurrencies: gatewayData.supportedCurrencies || [gatewayData.currencyType || 'USD'],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         transactionId // For atomic operation tracking
@@ -292,6 +305,7 @@ async create(gatewayData, userRole = null) {
       logAuditEvent('CREATE', newGateway.Id, gatewayData.name, 'admin', {
         gatewayType: gatewayData.gatewayType || 'Unknown',
         accountHolderName: gatewayData.accountHolderName || 'Not specified',
+        currencyType: gatewayData.currencyType || 'USD',
         transactionId,
         fieldsValidated: requiredFields.length,
         encryptionApplied: true
@@ -299,12 +313,12 @@ async create(gatewayData, userRole = null) {
       
       logTransactionAttempt('CREATE_COMPLETE', newId, gatewayData.name, true);
       
-      // Return with decrypted data for display
+      // Return with original plain text data for UI display
       return { 
         ...newGateway, 
-        accountNumber: gatewayData.accountNumber,
-        apiKey: gatewayData.apiKey,
-        apiSecret: gatewayData.apiSecret,
+        accountNumber: plainAccountNumber,
+        apiKey: plainApiKey,
+        apiSecret: plainApiSecret,
         encryptedAccountNumber: undefined,
         encryptedApiKey: undefined,
         encryptedApiSecret: undefined
@@ -342,12 +356,23 @@ async update(id, gatewayData, userRole = null) {
           throw new Error(`Gateway name '${gatewayData.name}' already exists`);
         }
       }
+
+      // Currency validation
+      const supportedCurrencies = ['USD', 'EUR', 'GBP', 'INR', 'CAD', 'AUD', 'JPY'];
+      if (gatewayData.currencyType && !supportedCurrencies.includes(gatewayData.currencyType)) {
+        throw new Error('Invalid currency type selected');
+      }
+      
+      // Store plain text values for return object
+      const plainAccountNumber = gatewayData.accountNumber;
+      const plainApiKey = gatewayData.apiKey;
+      const plainApiSecret = gatewayData.apiSecret;
       
       // Encrypt sensitive data if provided
       const updateData = { ...gatewayData };
       if (gatewayData.accountNumber) {
         updateData.encryptedAccountNumber = encryptData(gatewayData.accountNumber);
-        updateData.accountNumber = undefined; // Remove plain text
+        updateData.accountNumber = undefined; // Remove plain text from stored data
       }
       if (gatewayData.apiKey) {
         updateData.encryptedApiKey = encryptData(gatewayData.apiKey);
@@ -359,6 +384,10 @@ async update(id, gatewayData, userRole = null) {
       }
       if (gatewayData.transactionFee !== undefined) {
         updateData.transactionFee = gatewayData.transactionFee;
+      }
+      if (gatewayData.currencyType) {
+        updateData.primaryCurrency = gatewayData.currencyType;
+        updateData.supportedCurrencies = [gatewayData.currencyType];
       }
       
       // Atomic update operation
@@ -377,7 +406,8 @@ async update(id, gatewayData, userRole = null) {
         oldValues: { 
           name: oldGateway.name, 
           isActive: oldGateway.isActive,
-          merchantId: oldGateway.merchantId 
+          merchantId: oldGateway.merchantId,
+          primaryCurrency: oldGateway.primaryCurrency
         },
         transactionId
       });
@@ -386,15 +416,24 @@ async update(id, gatewayData, userRole = null) {
       
       // Return with decrypted data for display
       const updatedGateway = { ...sourceData[index] };
-      if (updatedGateway.encryptedAccountNumber) {
+      if (updatedGateway.encryptedAccountNumber && plainAccountNumber) {
+        updatedGateway.accountNumber = plainAccountNumber;
+        updatedGateway.encryptedAccountNumber = undefined;
+      } else if (updatedGateway.encryptedAccountNumber) {
         updatedGateway.accountNumber = decryptData(updatedGateway.encryptedAccountNumber);
         updatedGateway.encryptedAccountNumber = undefined;
       }
-      if (updatedGateway.encryptedApiKey) {
+      if (updatedGateway.encryptedApiKey && plainApiKey) {
+        updatedGateway.apiKey = plainApiKey;
+        updatedGateway.encryptedApiKey = undefined;
+      } else if (updatedGateway.encryptedApiKey) {
         updatedGateway.apiKey = decryptData(updatedGateway.encryptedApiKey);
         updatedGateway.encryptedApiKey = undefined;
       }
-      if (updatedGateway.encryptedApiSecret) {
+      if (updatedGateway.encryptedApiSecret && plainApiSecret) {
+        updatedGateway.apiSecret = plainApiSecret;
+        updatedGateway.encryptedApiSecret = undefined;
+      } else if (updatedGateway.encryptedApiSecret) {
         updatedGateway.apiSecret = decryptData(updatedGateway.encryptedApiSecret);
         updatedGateway.encryptedApiSecret = undefined;
       }

@@ -16,7 +16,7 @@ function AdminPaymentGateways() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [isAdmin, setIsAdmin] = useState(true)
-  const [selectedGateway, setSelectedGateway] = useState(null)
+const [selectedGateway, setSelectedGateway] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     type: 'card',
@@ -33,12 +33,12 @@ function AdminPaymentGateways() {
       percentageFee: 0
     },
     supportedCurrencies: ['USD'],
-    paymentMethods: ['card']
+    paymentMethods: ['card'],
+    currencyType: 'USD'
   })
   const [showForm, setShowForm] = useState(false)
   const [visibleAccountNumbers, setVisibleAccountNumbers] = useState({})
   const [testingMode, setTestingMode] = useState(false)
-
   useEffect(() => {
     loadGateways()
   }, [])
@@ -79,7 +79,7 @@ async function handleSubmit(e) {
     e.preventDefault()
     
     // Frontend validation for required fields
-    const requiredFields = ['name', 'accountNumber', 'merchantId', 'apiKey', 'apiSecret'];
+    const requiredFields = ['name', 'accountNumber', 'merchantId', 'apiKey', 'apiSecret', 'currencyType'];
     const missingFields = requiredFields.filter(field => !formData[field] || formData[field].toString().trim() === '');
     
     if (missingFields.length > 0) {
@@ -98,16 +98,30 @@ async function handleSubmit(e) {
       return;
     }
 
+    // Currency validation
+    const supportedCurrencies = ['USD', 'EUR', 'GBP', 'INR', 'CAD', 'AUD', 'JPY'];
+    if (!supportedCurrencies.includes(formData.currencyType)) {
+      toast.error('Please select a valid currency type');
+      return;
+    }
+
     let retryCount = 0;
     const maxRetries = 3;
     
     const attemptSave = async () => {
       try {
+        // Prepare form data with currency configuration
+        const gatewayData = {
+          ...formData,
+          supportedCurrencies: [formData.currencyType],
+          primaryCurrency: formData.currencyType
+        };
+
         if (selectedGateway) {
-          await paymentGatewayService.update(selectedGateway.Id, formData, 'admin')
+          await paymentGatewayService.update(selectedGateway.Id, gatewayData, 'admin')
           toast.success('Payment gateway updated successfully!')
         } else {
-          await paymentGatewayService.create(formData, 'admin')
+          await paymentGatewayService.create(gatewayData, 'admin')
           toast.success('Payment gateway created successfully!')
           
           // Add 2-second delay before refreshing to allow DB replication
@@ -144,7 +158,8 @@ async function handleSubmit(e) {
             percentageFee: 0
           },
           supportedCurrencies: ['USD'],
-          paymentMethods: ['card']
+          paymentMethods: ['card'],
+          currencyType: 'USD'
         })
       } catch (err) {
         console.error(`Failed to save payment gateway (attempt ${retryCount + 1}):`, err)
@@ -170,7 +185,7 @@ async function handleSubmit(e) {
     
     await attemptSave()
   }
-  function handleEdit(gateway) {
+function handleEdit(gateway) {
     setSelectedGateway(gateway)
     setFormData({
       name: gateway.name || '',
@@ -188,7 +203,8 @@ async function handleSubmit(e) {
         percentageFee: gateway.fees?.percentageFee || 0
       },
       supportedCurrencies: gateway.supportedCurrencies || ['USD'],
-      paymentMethods: gateway.paymentMethods || ['card']
+      paymentMethods: gateway.paymentMethods || ['card'],
+      currencyType: gateway.primaryCurrency || gateway.supportedCurrencies?.[0] || 'USD'
     })
     setShowForm(true)
   }
@@ -333,7 +349,7 @@ async function handleToggleStatus(gateway) {
             </Button>
             
             <Button
-              onClick={() => {
+onClick={() => {
                 setSelectedGateway(null)
                 setFormData({
                   name: '',
@@ -351,7 +367,8 @@ async function handleToggleStatus(gateway) {
                     percentageFee: 0
                   },
                   supportedCurrencies: ['USD'],
-                  paymentMethods: ['card']
+                  paymentMethods: ['card'],
+                  currencyType: 'USD'
                 })
                 setShowForm(true)
               }}
@@ -486,8 +503,7 @@ async function handleToggleStatus(gateway) {
                   onChange={(e) => handleInputChange('fees.percentageFee', parseFloat(e.target.value) || 0)}
                   placeholder="2.9"
                 />
-
-                <Input
+<Input
                   label="Priority"
                   type="number"
                   value={formData.priority}
@@ -495,6 +511,25 @@ async function handleToggleStatus(gateway) {
                   placeholder="1"
                   min="1"
                 />
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Currency Type
+                  </label>
+                  <select
+                    value={formData.currencyType}
+                    onChange={(e) => handleInputChange('currencyType', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    <option value="USD">USD - US Dollar</option>
+                    <option value="EUR">EUR - Euro</option>
+                    <option value="GBP">GBP - British Pound</option>
+                    <option value="INR">INR - Indian Rupee</option>
+                    <option value="CAD">CAD - Canadian Dollar</option>
+                    <option value="AUD">AUD - Australian Dollar</option>
+                    <option value="JPY">JPY - Japanese Yen</option>
+                  </select>
+                </div>
 
                 <div className="flex items-center gap-3">
                   <input
