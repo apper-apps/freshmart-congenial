@@ -383,24 +383,17 @@ async create(gatewayData, userRole = null) {
         throw currencyError;
       }
       
-      // Enhanced validation for required fields
-      const requiredFields = ['name', 'accountNumber', 'merchantId', 'apiKey', 'apiSecret'];
+      // Enhanced validation for required fields - only name and accountNumber are required
+      const requiredFields = ['name', 'accountNumber'];
       validateRequiredFields(formattedGatewayData, requiredFields);
       
       // Check unique constraints to prevent duplicates
       validateUniqueConstraints(formattedGatewayData, sourceData, 'name');
-      validateUniqueConstraints(formattedGatewayData, sourceData, 'merchantId');
+      if (formattedGatewayData.merchantId) {
+        validateUniqueConstraints(formattedGatewayData, sourceData, 'merchantId');
+      }
       validateUniqueConstraints(formattedGatewayData, sourceData, 'accountNumber');
       
-      // Additional business validation
-      if (formattedGatewayData.accountNumber.length < 10) {
-        throw new Error('Account number must be at least 10 characters');
-      }
-      
-      if (formattedGatewayData.apiKey.length < 8) {
-        throw new Error('API Key must be at least 8 characters');
-      }
-
       // Currency validation
       const supportedCurrencies = ['USD', 'EUR', 'GBP', 'INR', 'CAD', 'AUD', 'JPY'];
       if (formattedGatewayData.currencyType && !supportedCurrencies.includes(formattedGatewayData.currencyType)) {
@@ -418,8 +411,8 @@ async create(gatewayData, userRole = null) {
       
       // Encrypt sensitive data
       const encryptedAccountNumber = encryptData(formattedGatewayData.accountNumber);
-      const encryptedApiKey = encryptData(formattedGatewayData.apiKey);
-      const encryptedApiSecret = encryptData(formattedGatewayData.apiSecret);
+      const encryptedApiKey = formattedGatewayData.apiKey ? encryptData(formattedGatewayData.apiKey) : undefined;
+      const encryptedApiSecret = formattedGatewayData.apiSecret ? encryptData(formattedGatewayData.apiSecret) : undefined;
       
       const newGateway = {
         ...formattedGatewayData,
@@ -1095,7 +1088,7 @@ async toggleTestingMode(enabled, userRole = null) {
         {
           Id: 1,
           name: "Test Gateway USD",
-          accountHolderName: "Test Account USD",
+accountHolderName: "Test Account USD",
           accountNumber: "TEST123456789",
           merchantId: "TEST_MERCHANT_001",
           apiKey: "test_api_key_12345",
@@ -1136,12 +1129,12 @@ async toggleTestingMode(enabled, userRole = null) {
         }
       ];
       
-      testScenarios.forEach(scenario => {
+testScenarios.forEach(scenario => {
         const formattedScenario = formatFinancialData(scenario);
         const testGateway = {
           ...formattedScenario,
           encryptedAccountNumber: encryptData(scenario.accountNumber),
-          encryptedApiKey: encryptData(scenario.apiKey),
+          encryptedApiKey: scenario.apiKey ? encryptData(scenario.apiKey) : undefined,
           encryptedApiSecret: encryptData(scenario.apiSecret),
           gatewayType: "Test Bank",
           logoUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=100&h=100&fit=crop",

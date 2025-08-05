@@ -207,11 +207,11 @@ async function loadGateways() {
     }
   };
 
-  async function handleSubmit(e) {
+async function handleSubmit(e) {
     e.preventDefault()
     
-    // Frontend validation for required fields
-    const requiredFields = ['name', 'accountNumber', 'merchantId', 'apiKey', 'apiSecret', 'currencyType'];
+    // Frontend validation for required fields - only name and accountNumber are required
+    const requiredFields = ['name', 'accountNumber'];
     const missingFields = requiredFields.filter(field => !formData[field] || formData[field].toString().trim() === '');
     
     if (missingFields.length > 0) {
@@ -652,10 +652,10 @@ onClick={() => {
               </Button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+<form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Input
-                  label="Gateway Name"
+                  label="Account Name"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   placeholder="e.g., Stripe, PayPal, Square"
@@ -679,12 +679,13 @@ onClick={() => {
                   </select>
                 </div>
 
-                <Input
+<Input
                   label="Account Number"
                   type="password"
                   value={formData.accountNumber}
                   onChange={(e) => handleInputChange('accountNumber', e.target.value)}
                   placeholder="Account or merchant ID"
+                  required
                 />
 
                 <Input
@@ -894,39 +895,41 @@ onClick={() => {
                                     </Badge>
                                   </div>
                                   
-                                  <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+<div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
                                     <span>Priority: {gateway.priority}</span>
                                     <span>•</span>
                                     <span>
                                       Fee: {formattedFee} + {gateway.fees?.percentageFee || 0}%
                                     </span>
-                                    <span>•</span>
-                                    <div className="flex items-center gap-2">
-                                      <span>Account:</span>
-                                      <span className="font-mono">
-                                        {visibleAccountNumbers[gateway.Id]
-                                          ? gateway.accountNumber || 'Not set'
-                                          : maskAccountNumber(gateway.accountNumber)
-                                        }
-                                      </span>
-                                      <button
-                                        onClick={() => toggleAccountNumberVisibility(gateway.Id)}
-                                        className="text-gray-400 hover:text-gray-600"
-                                      >
-                                        <ApperIcon
-                                          name={visibleAccountNumbers[gateway.Id] ? 'EyeOff' : 'Eye'}
-                                          size={14}
-                                        />
-                                      </button>
-                                      {gateway.accountNumber && (
-                                        <button
-                                          onClick={() => copyAccountNumber(gateway.accountNumber)}
-                                          className="text-gray-400 hover:text-gray-600"
-                                        >
-                                          <ApperIcon name="Copy" size={14} />
-                                        </button>
-                                      )}
-                                    </div>
+                                    {gateway.accountNumber && (
+                                      <>
+                                        <span>•</span>
+                                        <div className="flex items-center gap-2">
+                                          <span>Account:</span>
+                                          <span className="font-mono">
+                                            {visibleAccountNumbers[gateway.Id]
+                                              ? gateway.accountNumber
+                                              : maskAccountNumber(gateway.accountNumber)
+                                            }
+                                          </span>
+                                          <button
+                                            onClick={() => toggleAccountNumberVisibility(gateway.Id)}
+                                            className="text-gray-400 hover:text-gray-600"
+                                          >
+                                            <ApperIcon
+                                              name={visibleAccountNumbers[gateway.Id] ? 'EyeOff' : 'Eye'}
+                                              size={14}
+                                            />
+                                          </button>
+                                          <button
+                                            onClick={() => copyAccountNumber(gateway.accountNumber)}
+                                            className="text-gray-400 hover:text-gray-600"
+                                          >
+                                            <ApperIcon name="Copy" size={14} />
+                                          </button>
+                                        </div>
+                                      </>
+                                    )}
                                   </div>
                                 </div>
                               </div>

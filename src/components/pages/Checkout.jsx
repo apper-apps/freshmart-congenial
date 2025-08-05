@@ -251,16 +251,20 @@ const selectedSlot = deliverySlots.find(slot => slot.value === deliveryInfo.deli
                                             <span>Auto-Validated</span>
                                         </Badge>
                                     </div>
-                                    <p className="text-sm text-gray-600">{gateway.accountHolderName}</p>
+{gateway.accountHolderName && (
+                                        <p className="text-sm text-gray-600">{gateway.accountHolderName}</p>
+                                    )}
                                     <div className="flex items-center space-x-4 mt-2">
                                         <div className="flex items-center space-x-1 text-xs text-green-600">
                                             <ApperIcon name="CheckCircle" className="w-3 h-3" />
                                             <span>Bank Reference Check</span>
                                         </div>
-                                        <div className="flex items-center space-x-1 text-xs text-green-600">
-                                            <ApperIcon name="Clock" className="w-3 h-3" />
-                                            <span>Timestamp Verification</span>
-                                        </div>
+                                        {gateway.merchantId && (
+                                            <div className="flex items-center space-x-1 text-xs text-green-600">
+                                                <ApperIcon name="Clock" className="w-3 h-3" />
+                                                <span>Timestamp Verification</span>
+                                            </div>
+                                        )}
                                         <div className="flex items-center space-x-1 text-xs text-green-600">
                                             <ApperIcon name="DollarSign" className="w-3 h-3" />
                                             <span>Amount Matching</span>
