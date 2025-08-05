@@ -2,9 +2,9 @@
 export default {
   content: [
     "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
+"./src/**/*.{js,ts,jsx,tsx}",
   ],
-theme: {
+  theme: {
     extend: {
       colors: {
         primary: {
@@ -60,6 +60,7 @@ theme: {
         'premium-xl': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
       },
       // Mobile-first breakpoints
+// Cross-browser responsive breakpoints
       screens: {
         'xs': '475px',
         'sm': '640px',
@@ -67,11 +68,22 @@ theme: {
         'lg': '1024px',
         'xl': '1280px',
         '2xl': '1536px',
-        // Touch device queries
+        '3xl': '1920px',
+        // Device-specific queries
         'touch': { 'raw': '(hover: none) and (pointer: coarse)' },
         'no-touch': { 'raw': '(hover: hover) and (pointer: fine)' },
-      },
-      // Touch-optimized spacing
+        'high-res': { 'raw': '(-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi)' },
+        'reduced-motion': { 'raw': '(prefers-reduced-motion: reduce)' },
+        'dark': { 'raw': '(prefers-color-scheme: dark)' },
+        'light': { 'raw': '(prefers-color-scheme: light)' },
+        // Browser-specific queries
+        'webkit': { 'raw': '(-webkit-min-device-pixel-ratio: 0)' },
+        'moz': { 'raw': '(-moz-appearance: none)' },
+        // Orientation queries
+        'portrait': { 'raw': '(orientation: portrait)' },
+        'landscape': { 'raw': '(orientation: landscape)' },
+},
+      // Cross-browser optimized spacing
       spacing: {
         'touch': '44px', // WCAG minimum touch target
         'safe-top': 'env(safe-area-inset-top)',
@@ -79,15 +91,35 @@ theme: {
         'safe-left': 'env(safe-area-inset-left)',
         'safe-right': 'env(safe-area-inset-right)',
       },
-      // Mobile-optimized transitions
+      // Cross-browser optimized transitions
       transitionDuration: {
+        '75': '75ms',
+        '100': '100ms',
         '150': '150ms',
+        '200': '200ms',
         '250': '250ms',
+        '300': '300ms',
+        '500': '500ms',
+        '700': '700ms',
+        '1000': '1000ms',
       },
-      // PWA theme colors
+      // Cross-browser animation timing
+      transitionTimingFunction: {
+        'ease-in-out-back': 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+        'ease-out-expo': 'cubic-bezier(0.19, 1, 0.22, 1)',
+        'ease-in-expo': 'cubic-bezier(0.95, 0.05, 0.795, 0.035)',
+      },
+      // PWA and cross-browser theme colors
       backgroundColor: {
         'pwa-primary': '#2D7A3E',
         'pwa-secondary': '#F97316',
+      },
+      // Browser compatibility utilities
+      supports: {
+        'grid': 'display: grid',
+        'flex': 'display: flex',
+        'backdrop-blur': 'backdrop-filter: blur(1px)',
+        'css-variables': 'color: var(--test)',
       },
     },
   },

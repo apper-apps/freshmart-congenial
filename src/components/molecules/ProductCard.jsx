@@ -133,16 +133,16 @@ const handleAddToCart = async (e) => {
           <p className="text-sm text-gray-600">{product.category}</p>
         </div>
 
-        <div className="flex items-center justify-between">
+<div className="flex items-center justify-between">
           <div className="space-y-1">
-<div className="flex items-center gap-2">
-              <span className="text-2xl font-bold text-primary-600">
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              <span className="text-xl sm:text-2xl font-bold text-primary-600 leading-tight">
                 {formatPrice(product.price)}
               </span>
-              <span className="text-sm text-gray-500">/{product.unit}</span>
+              <span className="text-xs sm:text-sm text-gray-500 whitespace-nowrap">/{product.unit}</span>
             </div>
             {product.bulkPricing && product.bulkPricing.length > 0 && (
-<p className="text-xs text-accent-600 font-medium">
+              <p className="text-xs text-accent-600 font-medium leading-tight">
                 Bulk: {formatPrice(product.bulkPricing[0].price)}/{product.bulkPricing[0].quantity}
               </p>
             )}
@@ -159,15 +159,21 @@ const handleAddToCart = async (e) => {
           </span>
         </div>
 
-        <Button
+<Button
           onClick={handleAddToCart}
           disabled={product.stock === 0}
           variant="primary"
-          className="w-full"
+          className="w-full min-h-[44px] touch:min-h-[48px] text-sm sm:text-base transition-all duration-150 
+                     active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2
+                     disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          style={{
+            WebkitTapHighlightColor: 'transparent',
+            WebkitTouchCallout: 'none'
+          }}
         >
-          <ApperIcon name="ShoppingCart" className="w-4 h-4 mr-2" />
-          Add to Cart
-</Button>
+          <ApperIcon name="ShoppingCart" className="w-4 h-4 mr-2 flex-shrink-0" />
+          <span className="truncate">Add to Cart</span>
+        </Button>
       </div>
       {/* Quick View Modal */}
       <QuickViewModal

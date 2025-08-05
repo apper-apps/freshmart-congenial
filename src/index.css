@@ -50,7 +50,6 @@ body {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   -moz-user-select: none;
-  -ms-user-select: none;
   user-select: none;
   /* PWA viewport handling */
   padding-bottom: env(safe-area-inset-bottom);
@@ -268,7 +267,98 @@ body {
   }
 }
 
-/* Reduced motion support */
+/* Cross-browser CSS Grid and Flexbox fallbacks */
+.grid-fallback {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.flex-fallback {
+  display: flex;
+}
+
+/* Cross-browser transform and transition support */
+.transform-gpu {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.will-change-transform {
+  -webkit-will-change: transform;
+  -moz-will-change: transform;
+  will-change: transform;
+}
+
+/* Cross-browser vendor prefixes for animations */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Cross-browser isolation support */
+.isolation-isolate {
+  isolation: isolate;
+}
+
+@supports not (isolation: isolate) {
+  .isolation-isolate {
+    position: relative;
+    z-index: 0;
+  }
+}
+
+/* Browser-specific optimizations */
+.browser-chrome .chrome-optimized {
+  will-change: transform;
+}
+
+.browser-firefox .firefox-optimized {
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.browser-safari .safari-optimized {
+  -webkit-font-smoothing: antialiased;
+}
+
+.browser-edge .edge-optimized {
+  -ms-overflow-style: none;
+}
+
+/* Cross-browser layout classes */
+.cross-browser-layout {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+.cross-browser-optimized {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.cross-browser-error {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  user-select: text;
+}
+
+/* Touch device specific optimizations */
+.touch-device {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.no-touch-device button:hover,
+.no-touch-device [role="button"]:hover {
+  cursor: pointer;
+}
+
+/* Reduced motion support with cross-browser prefixes */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -281,5 +371,5 @@ body {
   
   .transform {
     transform: none !important;
-  }
+}
 }
