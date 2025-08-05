@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import { formatPrice } from '@/services/currency.formatter';
 import { notificationService } from "@/services/api/notificationService";
 import { orderService } from "@/services/api/orderService";
 import ApperIcon from "@/components/ApperIcon";
@@ -124,13 +125,6 @@ const OrderDashboard = () => {
     }
   };
 
-const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-PK', {
-      style: 'currency',
-      currency: 'PKR',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
@@ -394,9 +388,9 @@ const formatCurrency = (amount) => {
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
+<div className="text-right">
                       <p className="font-semibold text-gray-900">
-                        {formatCurrency(order.total)}
+                        {formatPrice(order.total)}
                       </p>
                       <p className="text-sm text-gray-600">
                         {formatDate(order.createdAt)}
