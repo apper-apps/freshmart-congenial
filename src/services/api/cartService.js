@@ -6,7 +6,7 @@ let cartItems = [];
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const cartService = {
-  async addItem(productId, quantity = 1, bulkOption = null) {
+async addItem(productId, quantity = 1, bulkOption = null) {
     await delay(100);
     
     const product = await productService.getById(productId);
@@ -19,12 +19,12 @@ export const cartService = {
                JSON.stringify(item.selectedBulkOption) === JSON.stringify(bulkOption)
     );
 
-    const price = bulkOption ? bulkOption.price : product.price;
-    const subtotal = price * quantity;
+    const price = parseFloat(bulkOption ? bulkOption.price : product.price);
+    const subtotal = parseFloat((price * quantity).toFixed(2));
 
     if (existingItemIndex >= 0) {
       cartItems[existingItemIndex].quantity += quantity;
-      cartItems[existingItemIndex].subtotal = cartItems[existingItemIndex].quantity * price;
+      cartItems[existingItemIndex].subtotal = parseFloat((cartItems[existingItemIndex].quantity * price).toFixed(2));
     } else {
       cartItems.push({
         productId,
@@ -42,7 +42,7 @@ export const cartService = {
     return [...cartItems];
   },
 
-  async updateQuantity(productId, newQuantity) {
+async updateQuantity(productId, newQuantity) {
     await delay(100);
     
     const itemIndex = cartItems.findIndex(item => item.productId === productId);
@@ -55,10 +55,10 @@ export const cartService = {
     }
 
     const item = cartItems[itemIndex];
-    const price = item.selectedBulkOption ? item.selectedBulkOption.price : item.product.price;
+    const price = parseFloat(item.selectedBulkOption ? item.selectedBulkOption.price : item.product.price);
     
     cartItems[itemIndex].quantity = newQuantity;
-    cartItems[itemIndex].subtotal = price * newQuantity;
+    cartItems[itemIndex].subtotal = parseFloat((price * newQuantity).toFixed(2));
 
     return this.getItems();
   },
@@ -80,28 +80,29 @@ export const cartService = {
     return [];
   },
 
-  getCartSummary() {
-    const subtotal = cartItems.reduce((sum, item) => sum + item.subtotal, 0);
+getCartSummary() {
+    const subtotal = parseFloat(cartItems.reduce((sum, item) => sum + parseFloat(item.subtotal), 0).toFixed(2));
     
     // Calculate bulk savings
     let savings = 0;
     cartItems.forEach(item => {
       if (item.selectedBulkOption) {
-        const regularPrice = item.product.price * item.quantity;
-        const bulkPrice = item.selectedBulkOption.price * item.quantity;
+        const regularPrice = parseFloat(item.product.price) * item.quantity;
+        const bulkPrice = parseFloat(item.selectedBulkOption.price) * item.quantity;
         savings += regularPrice - bulkPrice;
       }
     });
+    savings = parseFloat(savings.toFixed(2));
 
-// Free delivery over Rs. 500
-    const deliveryFee = subtotal >= 500 ? 0 : 40;
-    const total = subtotal + deliveryFee;
+    // Free delivery over Rs. 500
+    const deliveryFee = subtotal >= 500.00 ? 0.00 : 40.00;
+    const total = parseFloat((subtotal + deliveryFee).toFixed(2));
 
     return {
-      subtotal: Math.round(subtotal),
-      savings: Math.round(savings),
+      subtotal,
+      savings,
       deliveryFee,
-      total: Math.round(total)
+      total
     };
   },
 

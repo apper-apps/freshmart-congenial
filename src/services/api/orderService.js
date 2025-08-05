@@ -105,12 +105,12 @@ async updateStatus(id, status) {
       filtered = filtered.filter(order => order.paymentMethod === filters.paymentMethod);
     }
 
-    if (filters.minAmount) {
-      filtered = filtered.filter(order => order.total >= filters.minAmount);
+if (filters.minAmount) {
+      filtered = filtered.filter(order => parseFloat(order.total) >= parseFloat(filters.minAmount));
     }
 
     if (filters.maxAmount) {
-      filtered = filtered.filter(order => order.total <= filters.maxAmount);
+      filtered = filtered.filter(order => parseFloat(order.total) <= parseFloat(filters.maxAmount));
     }
 
     return filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -130,11 +130,10 @@ async updateStatus(id, status) {
         o.status === 'delivered' && new Date(o.createdAt) >= todayStart
       ).length,
       totalRevenue: ordersData.reduce((sum, order) => sum + order.total, 0),
-      todayRevenue: ordersData.filter(o => 
+todayRevenue: parseFloat(ordersData.filter(o => 
         new Date(o.createdAt) >= todayStart
-      ).reduce((sum, order) => sum + order.total, 0)
+      ).reduce((sum, order) => sum + parseFloat(order.total), 0).toFixed(2))
     };
-
     return stats;
   },
 
@@ -240,8 +239,7 @@ async validatePaymentTransaction(id, transactionData, capturedImages = []) {
         console.warn('Image processing failed:', error);
       }
     }
-    
-    // Import payment gateway service for validation
+// Import payment gateway service for validation
     const { paymentGatewayService } = await import('@/services/api/paymentGatewayService');
     
     // Prepare validation data with mobile enhancements
@@ -252,8 +250,8 @@ async validatePaymentTransaction(id, transactionData, capturedImages = []) {
       bankReference: transactionData.bankReference,
       paymentTimestamp: transactionData.paymentTimestamp,
       orderTimestamp: order.createdAt,
-      paidAmount: transactionData.paidAmount || order.total,
-      expectedAmount: order.total,
+      paidAmount: parseFloat(transactionData.paidAmount || order.total),
+      expectedAmount: parseFloat(order.total),
       capturedProof: processedImages,
       deviceInfo: {
         isMobile: offlineService.isMobileDevice(),

@@ -78,7 +78,7 @@ return { ...deleted };
 
     const preferences = locationPreferences[userLocation] || locationPreferences.default;
     
-    // Calculate trending score for each product
+// Calculate trending score for each product
     const productsWithScore = productsData.map(product => {
       // Category preference weight (30%)
       const categoryWeight = (preferences[product.category] || 0.1) * 0.3;
@@ -89,8 +89,9 @@ return { ...deleted };
       
       // Price competitiveness (20%) - competitive pricing within category
       const categoryProducts = productsData.filter(p => p.category === product.category);
-      const avgCategoryPrice = categoryProducts.reduce((sum, p) => sum + p.price, 0) / categoryProducts.length;
-      const priceCompetitiveness = product.price <= avgCategoryPrice ? 0.2 : 0.1;
+      const avgCategoryPrice = categoryProducts.reduce((sum, p) => sum + parseFloat(p.price), 0) / categoryProducts.length;
+      const productPrice = parseFloat(product.price);
+      const priceCompetitiveness = productPrice <= avgCategoryPrice ? 0.2 : 0.1;
       
       // Sale status bonus (15%)
       const saleBonus = product.isOnSale ? 0.15 : 0.05;

@@ -4,7 +4,11 @@
  */
 
 export function formatPrice(amount) {
-  return `Rs ${amount.toLocaleString('en-PK')}`;
+  const numAmount = parseFloat(amount) || 0;
+  return `Rs ${numAmount.toLocaleString('en-PK', { 
+    minimumFractionDigits: 2, 
+    maximumFractionDigits: 2 
+  })}`;
 }
 
 export default {

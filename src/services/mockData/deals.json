@@ -23,7 +23,7 @@
     "discountPercentage": 33,
     "imageUrl": "https://images.unsplash.com/photo-1535140728325-781d5ecd3749?w=400&h=300&fit=crop",
     "category": "Seafood",
-    "expiresAt": "2024-12-25T23:59:59.000Z",
+    "expiresAt": "12/25/2024 11:59:59 PMZ",
     "isActive": true,
     "stockQuantity": 80,
     "tags": ["premium", "fresh", "omega-3", "protein"],

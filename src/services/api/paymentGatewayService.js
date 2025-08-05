@@ -769,14 +769,13 @@ async disableTestingMode(userRole = null) {
       }
     };
   },
-
-  async validateAmount(paidAmount, expectedAmount) {
+async validateAmount(paidAmount, expectedAmount) {
     await delay(150);
     
     const paid = parseFloat(paidAmount);
     const expected = parseFloat(expectedAmount);
-    const difference = Math.abs(paid - expected);
-    const tolerance = 1.0; // Allow 1 unit tolerance
+    const difference = parseFloat(Math.abs(paid - expected).toFixed(2));
+    const tolerance = 1.00; // Allow 1.00 PKR tolerance
     
     const isExactMatch = difference === 0;
     const isWithinTolerance = difference <= tolerance;
@@ -788,13 +787,13 @@ async disableTestingMode(userRole = null) {
         (isExactMatch ? 'Amount matches exactly' : 'Amount within acceptable tolerance') :
         'Amount mismatch detected',
       details: {
-        paidAmount: paid,
-        expectedAmount: expected,
+        paidAmount: parseFloat(paid.toFixed(2)),
+        expectedAmount: parseFloat(expected.toFixed(2)),
         difference: difference,
         tolerance: tolerance,
         isExactMatch,
         isWithinTolerance,
-        percentageDifference: expected > 0 ? ((difference / expected) * 100).toFixed(2) : 0
+        percentageDifference: expected > 0 ? parseFloat(((difference / expected) * 100).toFixed(2)) : 0
       }
     };
   },

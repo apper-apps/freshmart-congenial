@@ -3,11 +3,11 @@
     "Id": 1,
     "name": "Organic Tomatoes",
     "category": "Vegetables",
-    "price": 45,
+    "price": 45.00,
     "unit": "kg",
     "bulkPricing": [
-      { "quantity": "5kg", "price": 42 },
-      { "quantity": "10kg", "price": 40 }
+      { "quantity": "5kg", "price": 42.00 },
+      { "quantity": "10kg", "price": 40.00 }
     ],
     "stock": 28,
     "farmerId": "1",
@@ -19,11 +19,11 @@
     "Id": 2,
     "name": "Fresh Spinach",
     "category": "Vegetables",
-    "price": 25,
+    "price": 25.00,
     "unit": "bunch",
     "bulkPricing": [
-      { "quantity": "5 bunches", "price": 22 },
-      { "quantity": "10 bunches", "price": 20 }
+      { "quantity": "5 bunches", "price": 22.00 },
+      { "quantity": "10 bunches", "price": 20.00 }
     ],
     "stock": 15,
     "farmerId": "1",
@@ -35,11 +35,11 @@
     "Id": 3,
     "name": "Royal Gala Apples",
     "category": "Fruits",
-    "price": 120,
+    "price": 120.00,
     "unit": "kg",
     "bulkPricing": [
-      { "quantity": "3kg", "price": 115 },
-      { "quantity": "5kg", "price": 110 }
+      { "quantity": "3kg", "price": 115.00 },
+      { "quantity": "5kg", "price": 110.00 }
     ],
     "stock": 35,
     "farmerId": "2",
@@ -51,11 +51,11 @@
     "Id": 4,
     "name": "Organic Bananas",
     "category": "Fruits",
-    "price": 55,
+    "price": 55.00,
     "unit": "dozen",
     "bulkPricing": [
-      { "quantity": "2 dozen", "price": 50 },
-      { "quantity": "5 dozen", "price": 45 }
+      { "quantity": "2 dozen", "price": 50.00 },
+      { "quantity": "5 dozen", "price": 45.00 }
     ],
     "stock": 42,
     "farmerId": "2",
@@ -67,11 +67,11 @@
     "Id": 5,
     "name": "Farm Fresh Milk",
     "category": "Dairy",
-    "price": 65,
+    "price": 65.00,
     "unit": "liter",
     "bulkPricing": [
-      { "quantity": "5 liters", "price": 62 },
-      { "quantity": "10 liters", "price": 58 }
+      { "quantity": "5 liters", "price": 62.00 },
+      { "quantity": "10 liters", "price": 58.00 }
     ],
     "stock": 20,
     "farmerId": "3",
@@ -83,11 +83,11 @@
     "Id": 6,
     "name": "Artisan Cheese",
     "category": "Dairy",
-    "price": 280,
+    "price": 280.00,
     "unit": "250g",
     "bulkPricing": [
-      { "quantity": "500g", "price": 260 },
-      { "quantity": "1kg", "price": 240 }
+      { "quantity": "500g", "price": 260.00 },
+      { "quantity": "1kg", "price": 240.00 }
     ],
     "stock": 8,
     "farmerId": "3",
@@ -99,11 +99,11 @@
     "Id": 7,
     "name": "Whole Wheat Bread",
     "category": "Bakery",
-    "price": 45,
+    "price": 45.00,
     "unit": "loaf",
     "bulkPricing": [
-      { "quantity": "3 loaves", "price": 42 },
-      { "quantity": "5 loaves", "price": 38 }
+      { "quantity": "3 loaves", "price": 42.00 },
+      { "quantity": "5 loaves", "price": 38.00 }
     ],
     "stock": 12,
     "farmerId": "4",
@@ -115,11 +115,11 @@
     "Id": 8,
     "name": "Sourdough Bread",
     "category": "Bakery",
-    "price": 85,
+    "price": 85.00,
     "unit": "loaf",
     "bulkPricing": [
-      { "quantity": "2 loaves", "price": 80 },
-      { "quantity": "4 loaves", "price": 75 }
+      { "quantity": "2 loaves", "price": 80.00 },
+      { "quantity": "4 loaves", "price": 75.00 }
     ],
     "stock": 6,
     "farmerId": "4",
@@ -131,11 +131,11 @@
     "Id": 9,
     "name": "Free Range Chicken",
     "category": "Meat",
-    "price": 320,
+    "price": 320.00,
     "unit": "kg",
     "bulkPricing": [
-      { "quantity": "2kg", "price": 310 },
-      { "quantity": "5kg", "price": 295 }
+      { "quantity": "2kg", "price": 310.00 },
+      { "quantity": "5kg", "price": 295.00 }
     ],
     "stock": 10,
     "farmerId": "5",
@@ -147,11 +147,11 @@
     "Id": 10,
     "name": "Wild Caught Salmon",
     "category": "Meat",
-    "price": 580,
+    "price": 580.00,
     "unit": "kg",
     "bulkPricing": [
-      { "quantity": "2kg", "price": 560 },
-      { "quantity": "3kg", "price": 540 }
+      { "quantity": "2kg", "price": 560.00 },
+      { "quantity": "3kg", "price": 540.00 }
     ],
     "stock": 5,
     "farmerId": "5",
@@ -163,11 +163,11 @@
     "Id": 11,
     "name": "Organic Carrots",
     "category": "Vegetables",
-    "price": 35,
+    "price": 35.00,
     "unit": "kg",
     "bulkPricing": [
-      { "quantity": "3kg", "price": 32 },
-      { "quantity": "5kg", "price": 30 }
+      { "quantity": "3kg", "price": 32.00 },
+      { "quantity": "5kg", "price": 30.00 }
     ],
     "stock": 25,
     "farmerId": "1",
@@ -179,11 +179,11 @@
     "Id": 12,
     "name": "Sweet Oranges",
     "category": "Fruits",
-    "price": 75,
+    "price": 75.00,
     "unit": "kg",
     "bulkPricing": [
-      { "quantity": "3kg", "price": 70 },
-      { "quantity": "5kg", "price": 65 }
+      { "quantity": "3kg", "price": 70.00 },
+      { "quantity": "5kg", "price": 65.00 }
     ],
     "stock": 30,
     "farmerId": "2",
@@ -195,11 +195,11 @@
     "Id": 13,
     "name": "Greek Yogurt",
     "category": "Dairy",
-    "price": 95,
+    "price": 95.00,
     "unit": "500g",
     "bulkPricing": [
-      { "quantity": "1kg", "price": 180 },
-      { "quantity": "2kg", "price": 340 }
+      { "quantity": "1kg", "price": 180.00 },
+      { "quantity": "2kg", "price": 340.00 }
     ],
     "stock": 18,
     "farmerId": "3",
@@ -211,11 +211,11 @@
     "Id": 14,
     "name": "Croissants",
     "category": "Bakery",
-    "price": 15,
+    "price": 15.00,
     "unit": "piece",
     "bulkPricing": [
-      { "quantity": "6 pieces", "price": 12 },
-      { "quantity": "12 pieces", "price": 10 }
+      { "quantity": "6 pieces", "price": 12.00 },
+      { "quantity": "12 pieces", "price": 10.00 }
     ],
     "stock": 24,
     "farmerId": "4",
@@ -227,11 +227,11 @@
     "Id": 15,
     "name": "Organic Broccoli",
     "category": "Vegetables",
-    "price": 65,
+    "price": 65.00,
     "unit": "kg",
     "bulkPricing": [
-      { "quantity": "2kg", "price": 62 },
-      { "quantity": "3kg", "price": 58 }
+      { "quantity": "2kg", "price": 62.00 },
+      { "quantity": "3kg", "price": 58.00 }
     ],
     "stock": 20,
     "farmerId": "1",
@@ -243,11 +243,11 @@
     "Id": 16,
     "name": "Fresh Strawberries",
     "category": "Fruits",
-    "price": 180,
+    "price": 180.00,
     "unit": "250g",
     "bulkPricing": [
-      { "quantity": "500g", "price": 350 },
-      { "quantity": "1kg", "price": 680 }
+      { "quantity": "500g", "price": 350.00 },
+      { "quantity": "1kg", "price": 680.00 }
     ],
     "stock": 12,
     "farmerId": "2",

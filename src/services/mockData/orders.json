@@ -6,7 +6,7 @@
         "productId": 1,
         "quantity": 2,
         "selectedBulkOption": null,
-        "subtotal": 90,
+        "subtotal": 90.00,
         "product": {
           "Id": 1,
           "name": "Organic Tomatoes",
@@ -17,7 +17,7 @@
         "productId": 4,
         "quantity": 1,
         "selectedBulkOption": null,
-        "subtotal": 55,
+        "subtotal": 55.00,
         "product": {
           "Id": 4,
           "name": "Organic Bananas",
@@ -25,7 +25,7 @@
         }
       }
     ],
-    "total": 145,
+    "total": 145.00,
     "deliverySlot": "morning",
     "status": "delivered",
     "createdAt": "2024-01-15T10:30:00.000Z",
@@ -43,7 +43,7 @@
         "productId": 5,
         "quantity": 3,
         "selectedBulkOption": null,
-        "subtotal": 195,
+        "subtotal": 195.00,
         "product": {
           "Id": 5,
           "name": "Farm Fresh Milk",
@@ -51,7 +51,7 @@
         }
       }
     ],
-    "total": 195,
+    "total": 195.00,
     "deliverySlot": "afternoon",
     "status": "processing",
     "createdAt": "2024-01-18T14:20:00.000Z",
@@ -69,7 +69,7 @@
         "productId": 7,
         "quantity": 2,
         "selectedBulkOption": null,
-        "subtotal": 90,
+        "subtotal": 90.00,
         "product": {
           "Id": 7,
           "name": "Whole Wheat Bread",
@@ -80,7 +80,7 @@
         "productId": 6,
         "quantity": 1,
         "selectedBulkOption": null,
-        "subtotal": 280,
+        "subtotal": 280.00,
         "product": {
           "Id": 6,
           "name": "Artisan Cheese",
@@ -88,7 +88,7 @@
         }
       }
     ],
-    "total": 370,
+    "total": 370.00,
     "deliverySlot": "evening",
     "status": "delivered",
     "createdAt": "2024-01-12T16:45:00.000Z",
