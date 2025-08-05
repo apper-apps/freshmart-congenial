@@ -133,7 +133,7 @@ window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       {/* Cross-browser optimized footer */}
       <Footer />
       
-      {/* Cross-browser compatibility notifications */}
+{/* Cross-browser compatibility notifications */}
       {typeof window !== 'undefined' && window.navigator?.userAgent?.includes('MSIE') && (
         <div className="fixed bottom-4 left-4 right-4 bg-warning text-white p-3 rounded-lg shadow-lg z-50">
           <p className="text-sm font-medium">
@@ -142,6 +142,6 @@ window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
         </div>
       )}
     </div>
-};
+  );
 
 export default Layout;
