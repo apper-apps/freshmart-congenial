@@ -9,6 +9,8 @@ import Badge from "@/components/atoms/Badge";
 import Button from "@/components/atoms/Button";
 
 const ProductCard = ({ product }) => {
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
   const navigate = useNavigate();
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
   const [hoverTimeout, setHoverTimeout] = useState(null);
@@ -63,10 +65,23 @@ const ProductCard = ({ product }) => {
           setIsQuickViewOpen(true);
         }}
       >
+{imageLoading && (
+          <div className="absolute inset-0 bg-gray-100 animate-pulse flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-500 rounded-full animate-spin"></div>
+          </div>
+        )}
         <img
-          src={product.imageUrl}
+          src={imageError ? 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNzUgMjAwTDIwMCAxNzVMMjI1IDIwMEwyMDAgMjI1TDE3NSAyMDBaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0xNTAgMjI1TDE3NSAyMDBMMjAwIDIyNUwxNzUgMjUwTDE1MCAyMjVaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0yMDAgMjI1TDIyNSAyMDBMMjUwIDIyNUwyMjUgMjUwTDIwMCAyMjVaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPgo=' : product.imageUrl}
           alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+          className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
+          onLoad={() => {
+            setImageLoading(false);
+          }}
+          onError={(e) => {
+            setImageError(true);
+            setImageLoading(false);
+            console.warn(`Failed to load image for product: ${product.name}`, product.imageUrl);
+          }}
         />
         
         {/* Quick View Overlay */}
