@@ -77,11 +77,11 @@ window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
                         transform-gpu will-change-transform">
           <div className="flex items-center justify-center gap-2">
             <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-            <span className="font-medium">Working offline - Changes will sync when connection is restored</span>
+<span className="font-medium">Working offline - Changes will sync when connection is restored</span>
           </div>
         </div>
       )}
-{/* PWA Install Prompt with cross-browser support */}
+      {/* PWA Install Prompt with cross-browser support */}
       {showInstallPrompt && browserFeatures.supportsPWA && (
         <div className="bg-primary-500 text-white px-4 py-3 text-center text-sm sticky top-0 z-40
                         transform-gpu will-change-transform">
@@ -120,7 +120,8 @@ window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
           </div>
         </div>
       )}
-<Header />
+
+      <Header />
       
       {/* Main content with cross-browser optimized padding */}
       <main className="flex-1 pb-safe min-h-0 flex-grow isolation-isolate">
