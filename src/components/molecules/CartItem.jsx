@@ -1,4 +1,5 @@
 import React from "react";
+import { formatPrice } from '@/services/currency.formatter';
 import ApperIcon from "@/components/ApperIcon";
 import Button from "@/components/atoms/Button";
 import { cartService } from "@/services/api/cartService";
@@ -40,7 +41,7 @@ const CartItem = ({ item, onUpdate }) => {
           {item.product.name}
         </h3>
 <p className="text-sm text-gray-600">
-          Rs {item.product.price.toLocaleString('en-PK')}/{item.product.unit}
+          {formatPrice(item.product.price)}/{item.product.unit}
         </p>
         {item.selectedBulkOption && (
           <p className="text-xs text-accent-600 font-medium">
@@ -76,7 +77,7 @@ const CartItem = ({ item, onUpdate }) => {
 
         <div className="text-right">
 <div className="font-bold text-primary-600">
-            Rs {item.subtotal.toLocaleString('en-PK')}
+            {formatPrice(item.subtotal)}
           </div>
         </div>
 

@@ -1,15 +1,9 @@
-import React from 'react';
-import ApperIcon from '@/components/ApperIcon';
-import Badge from '@/components/atoms/Badge';
+import React from "react";
+import { formatPrice } from "@/services/currency.formatter";
+import ApperIcon from "@/components/ApperIcon";
+import Badge from "@/components/atoms/Badge";
 
 const OrderSummaryCards = ({ statistics }) => {
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
 
   const cards = [
     {
@@ -52,14 +46,14 @@ const OrderSummaryCards = ({ statistics }) => {
       textColor: 'text-success-700',
       iconColor: 'text-success-600'
     },
-    {
+{
       title: 'Total Revenue',
-      value: formatCurrency(statistics.totalRevenue),
+      value: formatPrice(statistics.totalRevenue),
       icon: 'IndianRupee',
       color: 'from-primary-100 to-primary-200',
       textColor: 'text-primary-700',
       iconColor: 'text-primary-600',
-      subtitle: `Today: ${formatCurrency(statistics.todayRevenue)}`
+      subtitle: `Today: ${formatPrice(statistics.todayRevenue)}`
     }
   ];
 

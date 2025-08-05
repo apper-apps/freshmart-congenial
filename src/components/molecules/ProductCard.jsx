@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { formatPrice } from '@/services/currency.formatter';
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import QuickViewModal from "@/components/molecules/QuickViewModal";
@@ -120,13 +121,13 @@ const ProductCard = ({ product }) => {
           <div className="space-y-1">
 <div className="flex items-center gap-2">
               <span className="text-2xl font-bold text-primary-600">
-                Rs {product.price.toLocaleString('en-PK')}
+                {formatPrice(product.price)}
               </span>
               <span className="text-sm text-gray-500">/{product.unit}</span>
             </div>
             {product.bulkPricing && product.bulkPricing.length > 0 && (
-              <p className="text-xs text-accent-600 font-medium">
-                Bulk: Rs {product.bulkPricing[0].price.toLocaleString('en-PK')}/{product.bulkPricing[0].quantity}
+<p className="text-xs text-accent-600 font-medium">
+                Bulk: {formatPrice(product.bulkPricing[0].price)}/{product.bulkPricing[0].quantity}
               </p>
             )}
           </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { formatPrice } from '@/services/currency.formatter';
 import { useParams, useNavigate } from "react-router-dom";
 import ApperIcon from "@/components/ApperIcon";
 import Button from "@/components/atoms/Button";
@@ -175,13 +176,13 @@ const ProductDetail = () => {
             <div className="space-y-2">
               <div className="flex items-baseline gap-2">
 <span className="text-4xl font-bold text-primary-600">
-                  RS {currentPrice}
+                  {formatPrice(currentPrice)}
                 </span>
                 <span className="text-lg text-gray-500">/{product.unit}</span>
               </div>
               {selectedQuantity > 1 && (
 <div className="text-lg font-semibold text-gray-900">
-                  Total: RS {totalPrice}
+                  Total: {formatPrice(totalPrice)}
                 </div>
               )}
             </div>
@@ -203,7 +204,7 @@ const ProductDetail = () => {
                   >
                     <div className="text-left">
 <div className="font-semibold">Regular Price</div>
-                      <div className="text-primary-600">RS {product.price}/{product.unit}</div>
+                      <div className="text-primary-600">{formatPrice(product.price)}/{product.unit}</div>
                     </div>
                   </button>
                   
@@ -219,7 +220,7 @@ const ProductDetail = () => {
                     >
                       <div className="text-left">
 <div className="font-semibold">{option.quantity}</div>
-                        <div className="text-primary-600">RS {option.price}/{product.unit}</div>
+                        <div className="text-primary-600">{formatPrice(option.price)}/{product.unit}</div>
                         <Badge variant="deal" size="sm" className="mt-1">
                           Save {Math.round(((product.price - option.price) / product.price) * 100)}%
                         </Badge>
@@ -282,7 +283,7 @@ const ProductDetail = () => {
                 className="flex-1"
               >
 <ApperIcon name="ShoppingCart" className="w-5 h-5 mr-2" />
-                Add to Cart - RS {totalPrice}
+                Add to Cart - {formatPrice(totalPrice)}
               </Button>
               
               <Button
