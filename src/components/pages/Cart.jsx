@@ -82,15 +82,15 @@ const Cart = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div className="min-h-screen bg-background">
+      <div className="w-full max-w-none sm:max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 sm:mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-display font-bold text-gray-900">
+            <h1 className="text-2xl sm:text-3xl font-display font-bold text-gray-900">
               Shopping Cart
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">
               {cartItems.length} {cartItems.length === 1 ? "item" : "items"} in your cart
             </p>
           </div>
@@ -98,16 +98,16 @@ const Cart = () => {
           <Button
             onClick={handleClearCart}
             variant="outline"
-            className="text-error border-error hover:bg-error hover:text-white"
+            className="text-error border-error hover:bg-error hover:text-white w-full sm:w-auto min-h-[48px]"
           >
             <ApperIcon name="Trash2" className="w-4 h-4 mr-2" />
             Clear Cart
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Cart Items */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="lg:col-span-2 space-y-3 sm:space-y-4">
             {cartItems.map((item) => (
               <CartItem
                 key={item.productId}
@@ -117,10 +117,10 @@ const Cart = () => {
             ))}
           </div>
 
-          {/* Order Summary */}
+{/* Order Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-premium p-6 sticky top-8">
-              <h2 className="font-display font-semibold text-xl text-gray-900 mb-6">
+            <div className="bg-white rounded-xl shadow-premium p-4 sm:p-6 lg:sticky lg:top-8">
+              <h2 className="font-display font-semibold text-lg sm:text-xl text-gray-900 mb-4 sm:mb-6">
                 Order Summary
               </h2>
 
