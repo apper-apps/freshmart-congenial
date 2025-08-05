@@ -3,6 +3,59 @@ import React from "react";
 import paymentGatewaysData from "@/services/mockData/paymentGateways.json";
 import Error from "@/components/ui/Error";
 // Field validation utilities
+// Financial data formatting middleware
+const formatFinancialData = (data) => {
+  const formatted = { ...data };
+  
+  // Format currency amounts based on currency type
+  if (formatted.fees) {
+    const decimalPlaces = formatted.currencyType === 'JPY' ? 0 : 2;
+    formatted.fees.transactionFee = parseFloat(formatted.fees.transactionFee || 0).toFixed(decimalPlaces);
+    formatted.fees.percentageFee = parseFloat(formatted.fees.percentageFee || 0).toFixed(2);
+  }
+  
+  // Add currency symbol for consistent display
+  const currencySymbols = {
+    'USD': '$', 'EUR': '€', 'GBP': '£', 'INR': '₹',
+    'CAD': 'C$', 'AUD': 'A$', 'JPY': '¥'
+  };
+  
+  formatted.currencySymbol = currencySymbols[formatted.currencyType] || '$';
+  
+  return formatted;
+};
+
+// Currency display validation middleware
+const validateCurrencyFormatting = (data) => {
+  const errors = [];
+  
+  // Validate currency symbol consistency
+  const expectedSymbol = {
+    'USD': '$', 'EUR': '€', 'GBP': '£', 'INR': '₹',
+    'CAD': 'C$', 'AUD': 'A$', 'JPY': '¥'
+  }[data.currencyType];
+  
+  if (data.currencySymbol && data.currencySymbol !== expectedSymbol) {
+    errors.push(`Currency symbol mismatch: expected ${expectedSymbol}, got ${data.currencySymbol}`);
+  }
+  
+  // Validate decimal places for currency amounts
+  if (data.fees && data.fees.transactionFee) {
+    const decimalPlaces = (data.fees.transactionFee.toString().split('.')[1] || '').length;
+    const expectedDecimals = data.currencyType === 'JPY' ? 0 : 2;
+    
+    if (decimalPlaces !== expectedDecimals) {
+      errors.push(`Transaction fee decimal places: expected ${expectedDecimals}, got ${decimalPlaces}`);
+    }
+  }
+  
+  if (errors.length > 0) {
+    throw new Error(`Currency formatting validation failed: ${errors.join(', ')}`);
+  }
+  
+  return true;
+};
+
 const validateRequiredFields = (data, requiredFields) => {
   const missing = requiredFields.filter(field => !data[field] || data[field].toString().trim() === '');
   if (missing.length > 0) {
@@ -67,6 +120,7 @@ const gatewayIndexes = {
 // Testing mode state
 let isTestingMode = false;
 const testGateways = [];
+const verificationResults = [];
 // Enhanced audit logging with detailed tracking
 const logAuditEvent = (action, gatewayId, gatewayName, userId = 'admin', details = {}) => {
   const logEntry = {
@@ -104,7 +158,8 @@ const logTransactionAttempt = (operation, gatewayId, gatewayName, success, error
     success,
     error: error?.message || null,
     duration: Math.random() * 500 + 100, // Simulated operation time
-    retryCount: 0
+    retryCount: 0,
+    currencyFormatting: success ? 'valid' : 'validation_failed'
   };
   transactionLogs.push(transactionEntry);
   
@@ -113,6 +168,66 @@ const logTransactionAttempt = (operation, gatewayId, gatewayName, success, error
     // Trigger admin alert for critical failures
     triggerAdminAlert('TRANSACTION_FAILED', transactionEntry);
   }
+};
+
+// Automated currency display tests
+const runCurrencyDisplayTests = (gatewayData) => {
+  const testResults = [];
+  
+  try {
+    // Test 1: Currency symbol validation
+    const expectedSymbol = {
+      'USD': '$', 'EUR': '€', 'GBP': '£', 'INR': '₹',
+      'CAD': 'C$', 'AUD': 'A$', 'JPY': '¥'
+    }[gatewayData.currencyType];
+    
+    testResults.push({
+      test: 'Currency Symbol Validation',
+      passed: gatewayData.currencySymbol === expectedSymbol,
+      expected: expectedSymbol,
+      actual: gatewayData.currencySymbol
+    });
+    
+    // Test 2: Decimal formatting validation
+    const expectedDecimals = gatewayData.currencyType === 'JPY' ? 0 : 2;
+    const actualDecimals = gatewayData.fees?.transactionFee ? 
+      (gatewayData.fees.transactionFee.toString().split('.')[1] || '').length : 0;
+    
+    testResults.push({
+      test: 'Decimal Places Validation',
+      passed: actualDecimals === expectedDecimals,
+      expected: expectedDecimals,
+      actual: actualDecimals
+    });
+    
+    // Test 3: Fee formatting consistency
+    const formattedFee = `${gatewayData.currencySymbol}${gatewayData.fees?.transactionFee || '0.00'}`;
+    const isValidFormat = /^[€$£₹¥C\$A\$]\d+(\.\d{2})?$/.test(formattedFee.replace('C$', 'C').replace('A$', 'A'));
+    
+    testResults.push({
+      test: 'Fee Format Consistency',
+      passed: isValidFormat,
+      expected: 'Valid currency format',
+      actual: formattedFee
+    });
+    
+  } catch (error) {
+    testResults.push({
+      test: 'Currency Display Tests',
+      passed: false,
+      expected: 'All tests to pass',
+      actual: error.message
+    });
+  }
+  
+  verificationResults.push({
+    gatewayId: gatewayData.Id,
+    timestamp: new Date().toISOString(),
+    tests: testResults,
+    overallStatus: testResults.every(t => t.passed) ? 'PASSED' : 'FAILED'
+  });
+  
+  return testResults;
 };
 
 // Admin alert system for critical failures
@@ -161,16 +276,33 @@ export const paymentGatewayService = {
 async getAll(userRole = null) {
     validateAdminRole(userRole);
     
-try {
+    try {
       await delay(300);
       
       const sourceData = isTestingMode ? testGateways : paymentGatewaysData;
-      const gateways = [...sourceData].map(gateway => ({
-        ...gateway,
-        accountNumber: gateway.encryptedAccountNumber ? 
-          decryptData(gateway.encryptedAccountNumber) || gateway.accountNumber :
-          gateway.accountNumber
-      }));
+      const gateways = [...sourceData].map(gateway => {
+        const decryptedGateway = {
+          ...gateway,
+          accountNumber: gateway.encryptedAccountNumber ? 
+            decryptData(gateway.encryptedAccountNumber) || gateway.accountNumber :
+            gateway.accountNumber
+        };
+        
+        // Apply financial data formatting middleware
+        const formattedGateway = formatFinancialData(decryptedGateway);
+        
+        // Run automated currency display validation
+        if (formattedGateway.currencyType) {
+          try {
+            validateCurrencyFormatting(formattedGateway);
+            runCurrencyDisplayTests(formattedGateway);
+          } catch (validationError) {
+            console.warn(`Currency validation failed for gateway ${formattedGateway.Id}:`, validationError.message);
+          }
+        }
+        
+        return formattedGateway;
+      });
     
       logAuditEvent('VIEW_ALL', null, 'All Gateways', 'admin');
       return gateways.sort((a, b) => (a.position || 0) - (b.position || 0));
@@ -241,27 +373,38 @@ async create(gatewayData, userRole = null) {
       
       const sourceData = isTestingMode ? testGateways : paymentGatewaysData;
       
+      // Apply financial data formatting middleware
+      const formattedGatewayData = formatFinancialData(gatewayData);
+      
+      // Validate currency formatting before processing
+      try {
+        validateCurrencyFormatting(formattedGatewayData);
+      } catch (currencyError) {
+        logTransactionAttempt('CREATE_FAILED', null, gatewayData.name, false, currencyError);
+        throw currencyError;
+      }
+      
       // Enhanced validation for required fields
       const requiredFields = ['name', 'accountNumber', 'merchantId', 'apiKey', 'apiSecret'];
-      validateRequiredFields(gatewayData, requiredFields);
+      validateRequiredFields(formattedGatewayData, requiredFields);
       
       // Check unique constraints to prevent duplicates
-      validateUniqueConstraints(gatewayData, sourceData, 'name');
-      validateUniqueConstraints(gatewayData, sourceData, 'merchantId');
-      validateUniqueConstraints(gatewayData, sourceData, 'accountNumber');
+      validateUniqueConstraints(formattedGatewayData, sourceData, 'name');
+      validateUniqueConstraints(formattedGatewayData, sourceData, 'merchantId');
+      validateUniqueConstraints(formattedGatewayData, sourceData, 'accountNumber');
       
       // Additional business validation
-      if (gatewayData.accountNumber.length < 10) {
+      if (formattedGatewayData.accountNumber.length < 10) {
         throw new Error('Account number must be at least 10 characters');
       }
       
-      if (gatewayData.apiKey.length < 8) {
+      if (formattedGatewayData.apiKey.length < 8) {
         throw new Error('API Key must be at least 8 characters');
       }
 
       // Currency validation
       const supportedCurrencies = ['USD', 'EUR', 'GBP', 'INR', 'CAD', 'AUD', 'JPY'];
-      if (gatewayData.currencyType && !supportedCurrencies.includes(gatewayData.currencyType)) {
+      if (formattedGatewayData.currencyType && !supportedCurrencies.includes(formattedGatewayData.currencyType)) {
         throw new Error('Invalid currency type selected');
       }
       
@@ -270,17 +413,17 @@ async create(gatewayData, userRole = null) {
       const newId = maxId + 1;
       
       // Store plain text values for return object
-      const plainAccountNumber = gatewayData.accountNumber;
-      const plainApiKey = gatewayData.apiKey;
-      const plainApiSecret = gatewayData.apiSecret;
+      const plainAccountNumber = formattedGatewayData.accountNumber;
+      const plainApiKey = formattedGatewayData.apiKey;
+      const plainApiSecret = formattedGatewayData.apiSecret;
       
       // Encrypt sensitive data
-      const encryptedAccountNumber = encryptData(gatewayData.accountNumber);
-      const encryptedApiKey = encryptData(gatewayData.apiKey);
-      const encryptedApiSecret = encryptData(gatewayData.apiSecret);
+      const encryptedAccountNumber = encryptData(formattedGatewayData.accountNumber);
+      const encryptedApiKey = encryptData(formattedGatewayData.apiKey);
+      const encryptedApiSecret = encryptData(formattedGatewayData.apiSecret);
       
       const newGateway = {
-        ...gatewayData,
+        ...formattedGatewayData,
         Id: newId,
         encryptedAccountNumber,
         encryptedApiKey,
@@ -289,29 +432,38 @@ async create(gatewayData, userRole = null) {
         apiKey: undefined,
         apiSecret: undefined,
         position: sourceData.length,
-        isActive: gatewayData.isActive !== undefined ? gatewayData.isActive : true,
-        transactionFee: gatewayData.transactionFee || 0,
-        primaryCurrency: gatewayData.currencyType || 'USD',
-        supportedCurrencies: gatewayData.supportedCurrencies || [gatewayData.currencyType || 'USD'],
+        isActive: formattedGatewayData.isActive !== undefined ? formattedGatewayData.isActive : true,
+        transactionFee: formattedGatewayData.transactionFee || 0,
+        primaryCurrency: formattedGatewayData.currencyType || 'USD',
+        supportedCurrencies: formattedGatewayData.supportedCurrencies || [formattedGatewayData.currencyType || 'USD'],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         transactionId // For atomic operation tracking
       };
       
+      // Run automated currency display tests
+      const currencyTests = runCurrencyDisplayTests({
+        ...newGateway,
+        accountNumber: plainAccountNumber,
+        apiKey: plainApiKey,
+        apiSecret: plainApiSecret
+      });
+      
       // Simulate atomic write operation
       sourceData.push(newGateway);
       updateIndexes(newGateway, 'CREATE');
       
-      logAuditEvent('CREATE', newGateway.Id, gatewayData.name, 'admin', {
-        gatewayType: gatewayData.gatewayType || 'Unknown',
-        accountHolderName: gatewayData.accountHolderName || 'Not specified',
-        currencyType: gatewayData.currencyType || 'USD',
+      logAuditEvent('CREATE', newGateway.Id, formattedGatewayData.name, 'admin', {
+        gatewayType: formattedGatewayData.gatewayType || 'Unknown',
+        accountHolderName: formattedGatewayData.accountHolderName || 'Not specified',
+        currencyType: formattedGatewayData.currencyType || 'USD',
+        currencyFormatting: currencyTests.every(t => t.passed) ? 'valid' : 'failed',
         transactionId,
         fieldsValidated: requiredFields.length,
         encryptionApplied: true
       });
       
-      logTransactionAttempt('CREATE_COMPLETE', newId, gatewayData.name, true);
+      logTransactionAttempt('CREATE_COMPLETE', newId, formattedGatewayData.name, true);
       
       // Return with original plain text data for UI display
       return { 
@@ -346,48 +498,61 @@ async update(id, gatewayData, userRole = null) {
       
       const oldGateway = { ...sourceData[index] };
       
+      // Apply financial data formatting middleware
+      const formattedGatewayData = formatFinancialData(gatewayData);
+      
+      // Validate currency formatting if currency data is being updated
+      if (formattedGatewayData.currencyType || formattedGatewayData.fees) {
+        try {
+          validateCurrencyFormatting(formattedGatewayData);
+        } catch (currencyError) {
+          logTransactionAttempt('UPDATE_FAILED', parseInt(id), gatewayData.name, false, currencyError);
+          throw currencyError;
+        }
+      }
+      
       // Validate unique constraints for updates (excluding current record)
-      if (gatewayData.name && gatewayData.name !== oldGateway.name) {
+      if (formattedGatewayData.name && formattedGatewayData.name !== oldGateway.name) {
         const duplicateName = sourceData.find(g => 
           g.Id !== parseInt(id) && 
-          g.name.toLowerCase() === gatewayData.name.toLowerCase()
+          g.name.toLowerCase() === formattedGatewayData.name.toLowerCase()
         );
         if (duplicateName) {
-          throw new Error(`Gateway name '${gatewayData.name}' already exists`);
+          throw new Error(`Gateway name '${formattedGatewayData.name}' already exists`);
         }
       }
 
       // Currency validation
       const supportedCurrencies = ['USD', 'EUR', 'GBP', 'INR', 'CAD', 'AUD', 'JPY'];
-      if (gatewayData.currencyType && !supportedCurrencies.includes(gatewayData.currencyType)) {
+      if (formattedGatewayData.currencyType && !supportedCurrencies.includes(formattedGatewayData.currencyType)) {
         throw new Error('Invalid currency type selected');
       }
       
       // Store plain text values for return object
-      const plainAccountNumber = gatewayData.accountNumber;
-      const plainApiKey = gatewayData.apiKey;
-      const plainApiSecret = gatewayData.apiSecret;
+      const plainAccountNumber = formattedGatewayData.accountNumber;
+      const plainApiKey = formattedGatewayData.apiKey;
+      const plainApiSecret = formattedGatewayData.apiSecret;
       
       // Encrypt sensitive data if provided
-      const updateData = { ...gatewayData };
-      if (gatewayData.accountNumber) {
-        updateData.encryptedAccountNumber = encryptData(gatewayData.accountNumber);
+      const updateData = { ...formattedGatewayData };
+      if (formattedGatewayData.accountNumber) {
+        updateData.encryptedAccountNumber = encryptData(formattedGatewayData.accountNumber);
         updateData.accountNumber = undefined; // Remove plain text from stored data
       }
-      if (gatewayData.apiKey) {
-        updateData.encryptedApiKey = encryptData(gatewayData.apiKey);
+      if (formattedGatewayData.apiKey) {
+        updateData.encryptedApiKey = encryptData(formattedGatewayData.apiKey);
         updateData.apiKey = undefined;
       }
-      if (gatewayData.apiSecret) {
-        updateData.encryptedApiSecret = encryptData(gatewayData.apiSecret);
+      if (formattedGatewayData.apiSecret) {
+        updateData.encryptedApiSecret = encryptData(formattedGatewayData.apiSecret);
         updateData.apiSecret = undefined;
       }
-      if (gatewayData.transactionFee !== undefined) {
-        updateData.transactionFee = gatewayData.transactionFee;
+      if (formattedGatewayData.transactionFee !== undefined) {
+        updateData.transactionFee = formattedGatewayData.transactionFee;
       }
-      if (gatewayData.currencyType) {
-        updateData.primaryCurrency = gatewayData.currencyType;
-        updateData.supportedCurrencies = [gatewayData.currencyType];
+      if (formattedGatewayData.currencyType) {
+        updateData.primaryCurrency = formattedGatewayData.currencyType;
+        updateData.supportedCurrencies = [formattedGatewayData.currencyType];
       }
       
       // Atomic update operation
@@ -401,18 +566,28 @@ async update(id, gatewayData, userRole = null) {
       
       updateIndexes(sourceData[index], 'UPDATE');
       
-      logAuditEvent('UPDATE', parseInt(id), gatewayData.name || oldGateway.name, 'admin', {
-        changes: Object.keys(gatewayData),
+      // Run automated currency display tests on updated gateway
+      const updatedGatewayForTesting = {
+        ...sourceData[index],
+        accountNumber: plainAccountNumber,
+        apiKey: plainApiKey,
+        apiSecret: plainApiSecret
+      };
+      const currencyTests = runCurrencyDisplayTests(updatedGatewayForTesting);
+      
+      logAuditEvent('UPDATE', parseInt(id), formattedGatewayData.name || oldGateway.name, 'admin', {
+        changes: Object.keys(formattedGatewayData),
         oldValues: { 
           name: oldGateway.name, 
           isActive: oldGateway.isActive,
           merchantId: oldGateway.merchantId,
           primaryCurrency: oldGateway.primaryCurrency
         },
+        currencyFormatting: currencyTests.every(t => t.passed) ? 'valid' : 'failed',
         transactionId
       });
       
-      logTransactionAttempt('UPDATE_COMPLETE', parseInt(id), gatewayData.name || oldGateway.name, true);
+      logTransactionAttempt('UPDATE_COMPLETE', parseInt(id), formattedGatewayData.name || oldGateway.name, true);
       
       // Return with decrypted data for display
       const updatedGateway = { ...sourceData[index] };
@@ -770,7 +945,7 @@ async disableTestingMode(userRole = null) {
     };
   },
 async validateAmount(paidAmount, expectedAmount) {
-    await delay(150);
+await delay(150);
     
     const paid = parseFloat(paidAmount);
     const expected = parseFloat(expectedAmount);
@@ -780,6 +955,13 @@ async validateAmount(paidAmount, expectedAmount) {
     const isExactMatch = difference === 0;
     const isWithinTolerance = difference <= tolerance;
     const isValid = isWithinTolerance;
+    
+    // Currency verification for amount validation
+    const currencyValidation = {
+      decimalPlaces: paid.toString().includes('.') ? (paid.toString().split('.')[1] || '').length : 0,
+      expectedDecimals: 2,
+      formatValid: /^\d+(\.\d{2})?$/.test(paid.toString()) && /^\d+(\.\d{2})?$/.test(expected.toString())
+    };
     
     return {
       status: isValid ? 'valid' : 'invalid',
@@ -793,7 +975,8 @@ async validateAmount(paidAmount, expectedAmount) {
         tolerance: tolerance,
         isExactMatch,
         isWithinTolerance,
-        percentageDifference: expected > 0 ? parseFloat(((difference / expected) * 100).toFixed(2)) : 0
+        percentageDifference: expected > 0 ? parseFloat(((difference / expected) * 100).toFixed(2)) : 0,
+        currencyValidation
       }
     };
   },
@@ -901,47 +1084,123 @@ lastValidation: validationEvents.length > 0 ?
     };
   },
 
-  async toggleTestingMode(enabled, userRole = null) {
+async toggleTestingMode(enabled, userRole = null) {
     validateAdminRole(userRole);
     await delay(200);
     
     isTestingMode = enabled;
     
     if (enabled && testGateways.length === 0) {
-      // Initialize test data
-testGateways.push(
+      // Initialize test data with comprehensive currency scenarios
+      const testScenarios = [
         {
           Id: 1,
-          name: "Test Gateway",
-          accountHolderName: "Test Account",
+          name: "Test Gateway USD",
+          accountHolderName: "Test Account USD",
           accountNumber: "TEST123456789",
           merchantId: "TEST_MERCHANT_001",
           apiKey: "test_api_key_12345",
           apiSecret: "test_secret_abcdef",
-          encryptedAccountNumber: encryptData("TEST123456789"),
-          encryptedApiKey: encryptData("test_api_key_12345"),
-          encryptedApiSecret: encryptData("test_secret_abcdef"),
+          currencyType: "USD",
+          primaryCurrency: "USD",
+          supportedCurrencies: ["USD"],
+          fees: { transactionFee: 0.30, percentageFee: 2.9 },
+          currencySymbol: "$"
+        },
+        {
+          Id: 2,
+          name: "Test Gateway EUR",
+          accountHolderName: "Test Account EUR",
+          accountNumber: "TEST123456790",
+          merchantId: "TEST_MERCHANT_002",
+          apiKey: "test_api_key_67890",
+          apiSecret: "test_secret_ghijkl",
+          currencyType: "EUR",
+          primaryCurrency: "EUR",
+          supportedCurrencies: ["EUR"],
+          fees: { transactionFee: 0.25, percentageFee: 2.5 },
+          currencySymbol: "€"
+        },
+        {
+          Id: 3,
+          name: "Test Gateway JPY",
+          accountHolderName: "Test Account JPY",
+          accountNumber: "TEST123456791",
+          merchantId: "TEST_MERCHANT_003",
+          apiKey: "test_api_key_11111",
+          apiSecret: "test_secret_mnopqr",
+          currencyType: "JPY",
+          primaryCurrency: "JPY",
+          supportedCurrencies: ["JPY"],
+          fees: { transactionFee: 30, percentageFee: 3.0 }, // No decimals for JPY
+          currencySymbol: "¥"
+        }
+      ];
+      
+      testScenarios.forEach(scenario => {
+        const formattedScenario = formatFinancialData(scenario);
+        const testGateway = {
+          ...formattedScenario,
+          encryptedAccountNumber: encryptData(scenario.accountNumber),
+          encryptedApiKey: encryptData(scenario.apiKey),
+          encryptedApiSecret: encryptData(scenario.apiSecret),
           gatewayType: "Test Bank",
           logoUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=100&h=100&fit=crop",
           isActive: true,
-          position: 0,
-          transactionFee: 0,
+          position: scenario.Id - 1,
+          transactionFee: scenario.fees.transactionFee,
           hasActiveTransactions: false,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
-        }
-      );
-      
-      // Initialize test gateway indexes
-      updateIndexes(testGateways[0], 'CREATE');
+        };
+        
+        testGateways.push(testGateway);
+        updateIndexes(testGateway, 'CREATE');
+        
+        // Run verification tests on each test gateway
+        runCurrencyDisplayTests(testGateway);
+      });
     }
     
     logAuditEvent('TESTING_MODE', null, 'System', 'admin', {
       enabled,
+      testGatewaysCount: testGateways.length,
+      verificationResults: verificationResults.length,
       timestamp: new Date().toISOString()
     });
     
     return isTestingMode;
+  },
+
+  // Get verification results for admin review
+  async getVerificationResults(userRole = null) {
+    validateAdminRole(userRole);
+    await delay(100);
+    
+    return {
+      results: verificationResults,
+      summary: {
+        totalTests: verificationResults.length,
+        passedTests: verificationResults.filter(r => r.overallStatus === 'PASSED').length,
+        failedTests: verificationResults.filter(r => r.overallStatus === 'FAILED').length,
+        lastTestRun: verificationResults.length > 0 ? 
+          verificationResults[verificationResults.length - 1].timestamp : null
+      }
+    };
+  },
+
+  // Clear verification results
+  async clearVerificationResults(userRole = null) {
+    validateAdminRole(userRole);
+    await delay(50);
+    
+    verificationResults.length = 0;
+    
+    logAuditEvent('CLEAR_VERIFICATION', null, 'System', 'admin', {
+      timestamp: new Date().toISOString()
+    });
+    
+    return { cleared: true, timestamp: new Date().toISOString() };
   },
 
   async getTestingMode() {

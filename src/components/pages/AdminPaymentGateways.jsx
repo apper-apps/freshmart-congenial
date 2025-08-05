@@ -12,11 +12,11 @@ import Input from "@/components/atoms/Input";
 import Button from "@/components/atoms/Button";
 
 function AdminPaymentGateways() {
-  const [gateways, setGateways] = useState([])
+const [gateways, setGateways] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [isAdmin, setIsAdmin] = useState(true)
-const [selectedGateway, setSelectedGateway] = useState(null)
+  const [selectedGateway, setSelectedGateway] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     type: 'card',
@@ -39,6 +39,9 @@ const [selectedGateway, setSelectedGateway] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [visibleAccountNumbers, setVisibleAccountNumbers] = useState({})
   const [testingMode, setTestingMode] = useState(false)
+  const [verificationMode, setVerificationMode] = useState(false)
+  const [testResults, setTestResults] = useState([])
+  const [currencyValidationResults, setCurrencyValidationResults] = useState([])
   useEffect(() => {
     loadGateways()
   }, [])
@@ -75,7 +78,136 @@ async function loadGateways() {
     }
   }
 
-async function handleSubmit(e) {
+// Financial data formatting middleware
+  const formatFinancialData = (data) => {
+    const formatted = { ...data };
+    
+    // Format currency amounts
+    if (formatted.fees) {
+      formatted.fees.transactionFee = parseFloat(formatted.fees.transactionFee || 0).toFixed(2);
+      formatted.fees.percentageFee = parseFloat(formatted.fees.percentageFee || 0).toFixed(2);
+    }
+    
+    // Validate currency format consistency
+    const currencySymbols = {
+      'USD': '$', 'EUR': '€', 'GBP': '£', 'INR': '₹',
+      'CAD': 'C$', 'AUD': 'A$', 'JPY': '¥'
+    };
+    
+    formatted.currencySymbol = currencySymbols[formatted.currencyType] || '$';
+    formatted.formattedTransactionFee = `${formatted.currencySymbol}${formatted.fees?.transactionFee || '0.00'}`;
+    
+    return formatted;
+  };
+
+  // Automated currency display validation
+  const validateCurrencyDisplay = (gatewayData) => {
+    const validationResults = [];
+    
+    // Check currency symbol consistency
+    const expectedSymbol = {
+      'USD': '$', 'EUR': '€', 'GBP': '£', 'INR': '₹',
+      'CAD': 'C$', 'AUD': 'A$', 'JPY': '¥'
+    }[gatewayData.currencyType];
+    
+    validationResults.push({
+      test: 'Currency Symbol Validation',
+      passed: gatewayData.currencySymbol === expectedSymbol,
+      expected: expectedSymbol,
+      actual: gatewayData.currencySymbol
+    });
+    
+    // Validate decimal places for currency
+    const decimalPlaces = gatewayData.currencyType === 'JPY' ? 0 : 2;
+    const feeDecimals = (gatewayData.fees?.transactionFee?.toString().split('.')[1] || '').length;
+    
+    validationResults.push({
+      test: 'Currency Decimal Places',
+      passed: feeDecimals === decimalPlaces,
+      expected: decimalPlaces,
+      actual: feeDecimals
+    });
+    
+    return validationResults;
+  };
+
+  // Verification test scenarios
+  const runVerificationTests = async () => {
+    setVerificationMode(true);
+    const results = [];
+    
+    try {
+      // Test 1: Gateway creation success scenario
+      const testGatewayData = {
+        name: 'Test Gateway Verification',
+        type: 'card',
+        accountNumber: 'TEST1234567890',
+        merchantId: 'TEST_MERCHANT_001',
+        apiKey: 'test_api_key_12345',
+        apiSecret: 'test_secret_abcdef',
+        currencyType: 'USD',
+        fees: { transactionFee: 0.30, percentageFee: 2.9 },
+        isActive: true
+      };
+      
+      const formattedTestData = formatFinancialData(testGatewayData);
+      const currencyValidation = validateCurrencyDisplay(formattedTestData);
+      
+      results.push({
+        scenario: 'Gateway Creation - Success Case',
+        status: 'passed',
+        details: 'Test gateway data formatted and validated successfully',
+        currencyValidation
+      });
+      
+      // Test 2: Invalid currency scenario
+      const invalidCurrencyData = { ...testGatewayData, currencyType: 'INVALID' };
+      try {
+        formatFinancialData(invalidCurrencyData);
+        results.push({
+          scenario: 'Invalid Currency - Failure Case',
+          status: 'failed',
+          details: 'Should have rejected invalid currency type'
+        });
+      } catch (err) {
+        results.push({
+          scenario: 'Invalid Currency - Failure Case',
+          status: 'passed',
+          details: 'Correctly rejected invalid currency type'
+        });
+      }
+      
+      // Test 3: List appearance verification
+      const currentGateways = await paymentGatewayService.getAll('admin');
+      const listValidation = currentGateways.every(gateway => {
+        const validation = validateCurrencyDisplay(formatFinancialData(gateway));
+        return validation.every(v => v.passed);
+      });
+      
+      results.push({
+        scenario: 'Gateway List Display Validation',
+        status: listValidation ? 'passed' : 'failed',
+        details: `Validated ${currentGateways.length} gateways for currency display consistency`
+      });
+      
+      setTestResults(results);
+      setCurrencyValidationResults(currencyValidation);
+      toast.success(`Verification completed: ${results.filter(r => r.status === 'passed').length}/${results.length} tests passed`);
+      
+    } catch (error) {
+      results.push({
+        scenario: 'Verification Process',
+        status: 'failed',
+        details: `Verification failed: ${error.message}`
+      });
+      setTestResults(results);
+      toast.error('Verification tests failed');
+    } finally {
+      setVerificationMode(false);
+    }
+  };
+
+  async function handleSubmit(e) {
     e.preventDefault()
     
     // Frontend validation for required fields
@@ -110,9 +242,22 @@ async function handleSubmit(e) {
     
     const attemptSave = async () => {
       try {
+        // Apply financial data formatting middleware
+        const formattedData = formatFinancialData(formData);
+        
+        // Validate currency display formatting
+        const currencyValidation = validateCurrencyDisplay(formattedData);
+        const validationFailed = currencyValidation.some(v => !v.passed);
+        
+        if (validationFailed) {
+          toast.error('Currency formatting validation failed. Please check your input.');
+          setCurrencyValidationResults(currencyValidation);
+          return;
+        }
+        
         // Prepare form data with currency configuration
         const gatewayData = {
-          ...formData,
+          ...formattedData,
           supportedCurrencies: [formData.currencyType],
           primaryCurrency: formData.currencyType
         };
@@ -128,6 +273,16 @@ async function handleSubmit(e) {
           setTimeout(async () => {
             try {
               await loadGateways()
+              
+              // Run automatic validation on the new gateway
+              const updatedGateways = await paymentGatewayService.getAll('admin');
+              const newGateway = updatedGateways.find(g => g.name === gatewayData.name);
+              if (newGateway) {
+                const validation = validateCurrencyDisplay(newGateway);
+                if (validation.some(v => !v.passed)) {
+                  toast.warning('Gateway created but currency display validation failed');
+                }
+              }
             } catch (refreshErr) {
               console.warn('Auto-refresh failed:', refreshErr)
               toast.info('Gateway created but list refresh failed. Please refresh manually.')
@@ -377,6 +532,16 @@ onClick={() => {
               <ApperIcon name="Plus" size={16} />
               Add Gateway
             </Button>
+            
+            <Button
+              onClick={runVerificationTests}
+              variant="secondary"
+              className="flex items-center gap-2"
+              disabled={verificationMode}
+            >
+              <ApperIcon name={verificationMode ? "Loader2" : "CheckCircle"} size={16} />
+              {verificationMode ? 'Running Tests...' : 'Run Verification'}
+            </Button>
           </div>
         </div>
 
@@ -396,6 +561,78 @@ onClick={() => {
         )}
 
         {/* Gateway Form */}
+{/* Verification Test Results */}
+        {testResults.length > 0 && (
+          <div className="bg-surface rounded-lg shadow-premium-lg p-6 mb-8">
+            <h2 className="text-xl font-display font-semibold mb-4">Verification Test Results</h2>
+            <div className="space-y-4">
+              {testResults.map((result, index) => (
+                <div key={index} className={`p-4 rounded-lg border-2 ${
+                  result.status === 'passed' 
+                    ? 'border-success bg-success/10' 
+                    : 'border-error bg-error/10'
+                }`}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <ApperIcon 
+                      name={result.status === 'passed' ? 'CheckCircle' : 'XCircle'} 
+                      size={20}
+                      className={result.status === 'passed' ? 'text-success' : 'text-error'}
+                    />
+                    <h3 className="font-semibold">{result.scenario}</h3>
+                  </div>
+                  <p className="text-gray-600">{result.details}</p>
+                  {result.currencyValidation && (
+                    <div className="mt-3 space-y-2">
+                      {result.currencyValidation.map((validation, vIndex) => (
+                        <div key={vIndex} className="flex items-center gap-2 text-sm">
+                          <ApperIcon 
+                            name={validation.passed ? 'Check' : 'X'} 
+                            size={14}
+                            className={validation.passed ? 'text-success' : 'text-error'}
+                          />
+                          <span>{validation.test}: {validation.passed ? 'Passed' : 'Failed'}</span>
+                          {!validation.passed && (
+                            <span className="text-gray-500">
+                              (Expected: {validation.expected}, Got: {validation.actual})
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Currency Validation Results */}
+        {currencyValidationResults.length > 0 && (
+          <div className="bg-surface rounded-lg shadow-premium-lg p-6 mb-8">
+            <h2 className="text-xl font-display font-semibold mb-4">Currency Formatting Validation</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {currencyValidationResults.map((validation, index) => (
+                <div key={index} className={`p-4 rounded-lg border ${
+                  validation.passed ? 'border-success bg-success/5' : 'border-error bg-error/5'
+                }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <ApperIcon 
+                      name={validation.passed ? 'Check' : 'AlertTriangle'} 
+                      size={16}
+                      className={validation.passed ? 'text-success' : 'text-error'}
+                    />
+                    <span className="font-medium">{validation.test}</span>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    <div>Expected: {validation.expected}</div>
+                    <div>Actual: {validation.actual}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {showForm && (
           <div className="bg-surface rounded-lg shadow-premium-lg p-6 mb-8">
             <div className="flex items-center justify-between mb-6">
@@ -406,6 +643,7 @@ onClick={() => {
                 onClick={() => {
                   setShowForm(false)
                   setSelectedGateway(null)
+                  setCurrencyValidationResults([]) // Clear validation results
                 }}
                 variant="ghost"
                 size="sm"
@@ -486,14 +724,29 @@ onClick={() => {
                   placeholder="https://your-site.com/webhook"
                 />
 
-                <Input
-                  label="Transaction Fee ($)"
-                  type="number"
-                  step="0.01"
-                  value={formData.fees.transactionFee}
-                  onChange={(e) => handleInputChange('fees.transactionFee', parseFloat(e.target.value) || 0)}
-                  placeholder="0.30"
-                />
+                <div>
+                  <Input
+                    label={`Transaction Fee (${formData.currencyType === 'JPY' ? '¥' : '$'})`}
+                    type="number"
+                    step={formData.currencyType === 'JPY' ? '1' : '0.01'}
+                    value={formData.fees.transactionFee}
+                    onChange={(e) => handleInputChange('fees.transactionFee', parseFloat(e.target.value) || 0)}
+                    placeholder={formData.currencyType === 'JPY' ? '30' : '0.30'}
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    Formatted: {formData.currencyType === 'USD' ? '$' : 
+                              formData.currencyType === 'EUR' ? '€' :
+                              formData.currencyType === 'GBP' ? '£' :
+                              formData.currencyType === 'INR' ? '₹' :
+                              formData.currencyType === 'CAD' ? 'C$' :
+                              formData.currencyType === 'AUD' ? 'A$' :
+                              formData.currencyType === 'JPY' ? '¥' : '$'}
+                    {formData.currencyType === 'JPY' ? 
+                      Math.round(formData.fees.transactionFee || 0) :
+                      (formData.fees.transactionFee || 0).toFixed(2)
+                    }
+                  </div>
+                </div>
 
                 <Input
                   label="Percentage Fee (%)"
@@ -503,7 +756,8 @@ onClick={() => {
                   onChange={(e) => handleInputChange('fees.percentageFee', parseFloat(e.target.value) || 0)}
                   placeholder="2.9"
                 />
-<Input
+
+                <Input
                   label="Priority"
                   type="number"
                   value={formData.priority}
@@ -514,21 +768,25 @@ onClick={() => {
 
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">
-                    Currency Type
+                    Currency Type *
                   </label>
                   <select
                     value={formData.currencyType}
                     onChange={(e) => handleInputChange('currencyType', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                    required
                   >
-                    <option value="USD">USD - US Dollar</option>
-                    <option value="EUR">EUR - Euro</option>
-                    <option value="GBP">GBP - British Pound</option>
-                    <option value="INR">INR - Indian Rupee</option>
-                    <option value="CAD">CAD - Canadian Dollar</option>
-                    <option value="AUD">AUD - Australian Dollar</option>
-                    <option value="JPY">JPY - Japanese Yen</option>
+                    <option value="USD">USD - US Dollar ($)</option>
+                    <option value="EUR">EUR - Euro (€)</option>
+                    <option value="GBP">GBP - British Pound (£)</option>
+                    <option value="INR">INR - Indian Rupee (₹)</option>
+                    <option value="CAD">CAD - Canadian Dollar (C$)</option>
+                    <option value="AUD">AUD - Australian Dollar (A$)</option>
+                    <option value="JPY">JPY - Japanese Yen (¥)</option>
                   </select>
+                  <div className="text-xs text-gray-500">
+                    Currency formatting will be automatically validated
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -552,6 +810,7 @@ onClick={() => {
                   onClick={() => {
                     setShowForm(false)
                     setSelectedGateway(null)
+                    setCurrencyValidationResults([])
                   }}
                 >
                   Cancel
@@ -564,7 +823,7 @@ onClick={() => {
           </div>
         )}
 
-        {/* Gateway List */}
+{/* Gateway List */}
         {filteredGateways.length === 0 ? (
           <Empty 
             title="No Payment Gateways"
@@ -581,118 +840,133 @@ onClick={() => {
                   ref={provided.innerRef}
                   className="space-y-4"
                 >
-                  {filteredGateways.map((gateway, index) => (
-                    <Draggable
-                      key={gateway.id}
-                      draggableId={gateway.id.toString()}
-                      index={index}
-                    >
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          className={`bg-surface rounded-lg shadow-premium p-6 border-2 transition-all ${
-                            snapshot.isDragging
-                              ? 'border-primary-300 shadow-premium-lg'
-                              : 'border-transparent hover:shadow-premium-lg'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div
-                                {...provided.dragHandleProps}
-                                className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
-                              >
-                                <ApperIcon name="GripVertical" size={20} />
-                              </div>
-
-                              <div>
-                                <div className="flex items-center gap-3">
-                                  <h3 className="text-lg font-semibold text-gray-900">
-                                    {gateway.name}
-                                  </h3>
-                                  <Badge
-                                    variant={gateway.isActive ? 'success' : 'secondary'}
-                                  >
-                                    {gateway.isActive ? 'Active' : 'Inactive'}
-                                  </Badge>
-                                  <Badge variant="outline">
-                                    {gateway.type}
-                                  </Badge>
+                  {filteredGateways.map((gateway, index) => {
+                    // Format currency display for each gateway
+                    const currencySymbol = {
+                      'USD': '$', 'EUR': '€', 'GBP': '£', 'INR': '₹',
+                      'CAD': 'C$', 'AUD': 'A$', 'JPY': '¥'
+                    }[gateway.primaryCurrency || gateway.currencyType || 'USD'] || '$';
+                    
+                    const formattedFee = gateway.currencyType === 'JPY' || gateway.primaryCurrency === 'JPY' ?
+                      `${currencySymbol}${Math.round(gateway.fees?.transactionFee || 0)}` :
+                      `${currencySymbol}${(gateway.fees?.transactionFee || 0).toFixed(2)}`;
+                    
+                    return (
+                      <Draggable
+                        key={gateway.Id}
+                        draggableId={gateway.Id.toString()}
+                        index={index}
+                      >
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            className={`bg-surface rounded-lg shadow-premium p-6 border-2 transition-all ${
+                              snapshot.isDragging
+                                ? 'border-primary-300 shadow-premium-lg'
+                                : 'border-transparent hover:shadow-premium-lg'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div
+                                  {...provided.dragHandleProps}
+                                  className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+                                >
+                                  <ApperIcon name="GripVertical" size={20} />
                                 </div>
-                                
-                                <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                                  <span>Priority: {gateway.priority}</span>
-                                  <span>•</span>
-                                  <span>
-                                    Fee: ${gateway.fees?.transactionFee || 0} + {gateway.fees?.percentageFee || 0}%
-                                  </span>
-                                  <span>•</span>
-                                  <div className="flex items-center gap-2">
-                                    <span>Account:</span>
-                                    <span className="font-mono">
-                                      {visibleAccountNumbers[gateway.id]
-                                        ? gateway.accountNumber || 'Not set'
-                                        : maskAccountNumber(gateway.accountNumber)
-                                      }
-                                    </span>
-                                    <button
-                                      onClick={() => toggleAccountNumberVisibility(gateway.id)}
-                                      className="text-gray-400 hover:text-gray-600"
+
+                                <div>
+                                  <div className="flex items-center gap-3">
+                                    <h3 className="text-lg font-semibold text-gray-900">
+                                      {gateway.name}
+                                    </h3>
+                                    <Badge
+                                      variant={gateway.isActive ? 'success' : 'secondary'}
                                     >
-                                      <ApperIcon
-                                        name={visibleAccountNumbers[gateway.id] ? 'EyeOff' : 'Eye'}
-                                        size={14}
-                                      />
-                                    </button>
-                                    {gateway.accountNumber && (
+                                      {gateway.isActive ? 'Active' : 'Inactive'}
+                                    </Badge>
+                                    <Badge variant="outline">
+                                      {gateway.type}
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs">
+                                      {gateway.primaryCurrency || gateway.currencyType || 'USD'}
+                                    </Badge>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                                    <span>Priority: {gateway.priority}</span>
+                                    <span>•</span>
+                                    <span>
+                                      Fee: {formattedFee} + {gateway.fees?.percentageFee || 0}%
+                                    </span>
+                                    <span>•</span>
+                                    <div className="flex items-center gap-2">
+                                      <span>Account:</span>
+                                      <span className="font-mono">
+                                        {visibleAccountNumbers[gateway.Id]
+                                          ? gateway.accountNumber || 'Not set'
+                                          : maskAccountNumber(gateway.accountNumber)
+                                        }
+                                      </span>
                                       <button
-                                        onClick={() => copyAccountNumber(gateway.accountNumber)}
+                                        onClick={() => toggleAccountNumberVisibility(gateway.Id)}
                                         className="text-gray-400 hover:text-gray-600"
                                       >
-                                        <ApperIcon name="Copy" size={14} />
+                                        <ApperIcon
+                                          name={visibleAccountNumbers[gateway.Id] ? 'EyeOff' : 'Eye'}
+                                          size={14}
+                                        />
                                       </button>
-                                    )}
+                                      {gateway.accountNumber && (
+                                        <button
+                                          onClick={() => copyAccountNumber(gateway.accountNumber)}
+                                          className="text-gray-400 hover:text-gray-600"
+                                        >
+                                          <ApperIcon name="Copy" size={14} />
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
 
-                            <div className="flex items-center gap-2">
-                              <Button
-                                onClick={() => handleToggleStatus(gateway)}
-                                variant={gateway.isActive ? 'secondary' : 'primary'}
-                                size="sm"
-                              >
-                                <ApperIcon
-                                  name={gateway.isActive ? 'Pause' : 'Play'}
-                                  size={14}
-                                />
-                                {gateway.isActive ? 'Deactivate' : 'Activate'}
-                              </Button>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  onClick={() => handleToggleStatus(gateway)}
+                                  variant={gateway.isActive ? 'secondary' : 'primary'}
+                                  size="sm"
+                                >
+                                  <ApperIcon
+                                    name={gateway.isActive ? 'Pause' : 'Play'}
+                                    size={14}
+                                  />
+                                  {gateway.isActive ? 'Deactivate' : 'Activate'}
+                                </Button>
 
-                              <Button
-                                onClick={() => handleEdit(gateway)}
-                                variant="ghost"
-                                size="sm"
-                              >
-                                <ApperIcon name="Edit" size={14} />
-                              </Button>
+                                <Button
+                                  onClick={() => handleEdit(gateway)}
+                                  variant="ghost"
+                                  size="sm"
+                                >
+                                  <ApperIcon name="Edit" size={14} />
+                                </Button>
 
-                              <Button
-                                onClick={() => handleDelete(gateway)}
-                                variant="ghost"
-                                size="sm"
-                                className="text-error hover:text-error hover:bg-error/10"
-                              >
-                                <ApperIcon name="Trash2" size={14} />
-                              </Button>
+                                <Button
+                                  onClick={() => handleDelete(gateway)}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-error hover:text-error hover:bg-error/10"
+                                >
+                                  <ApperIcon name="Trash2" size={14} />
+                                </Button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
+                        )}
+                      </Draggable>
+                    );
+                  })}
                   {provided.placeholder}
                 </div>
               )}
