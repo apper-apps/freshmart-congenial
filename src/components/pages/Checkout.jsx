@@ -12,7 +12,12 @@ import Button from "@/components/atoms/Button";
 const Checkout = () => {
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
-  const [cartSummary, setCartSummary] = useState({});
+const [cartSummary, setCartSummary] = useState({
+    subtotal: 0,
+    savings: 0,
+    deliveryFee: 0,
+    total: 0
+  });
   const [loading, setLoading] = useState(false);
 const [availableGateways, setAvailableGateways] = useState([]);
   const [gatewaysLoading, setGatewaysLoading] = useState(true);
